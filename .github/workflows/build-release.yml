@@ -57,6 +57,9 @@ jobs:
           (cd release && sha256sum -c SHA256SUMS)
           tar -xzf "release/physics-experiments-$VERSION.tar.gz" -C "$RUNNER_TEMP"
           docker build -t physics-experiments:ci "$RUNNER_TEMP/physics-experiments-$VERSION"
+          for image in physics-experiments:source physics-experiments:ci; do
+            docker image inspect "$image" | jq -e '.[0].Config.ExposedPorts | keys == ["8080/tcp"]'
+          done
           docker run -d --name physics-ci -p 127.0.0.1:4173:8080 physics-experiments:ci
           curl --fail --retry 20 --retry-all-errors --retry-delay 1 --max-time 2 http://127.0.0.1:4173/healthz
       - name: Install Chromium

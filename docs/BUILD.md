@@ -30,12 +30,12 @@ npm ci
 npm run package
 ```
 
-当前版本为 `0.1.0`，输出如下（后续版本自动改名）：
+当前版本为 `0.1.1`，输出如下（后续版本自动改名）：
 
 ```text
 dist/                               编译后的网站
 dist/version.json                   版本、来源提交与时间信息
-release/physics-experiments-0.1.0.tar.gz
+release/physics-experiments-0.1.1.tar.gz
 release/SHA256SUMS
 ```
 
@@ -44,8 +44,8 @@ release/SHA256SUMS
 ```sh
 cd release
 sha256sum -c SHA256SUMS
-tar -xzf physics-experiments-0.1.0.tar.gz
-cd physics-experiments-0.1.0
+tar -xzf physics-experiments-0.1.1.tar.gz
+cd physics-experiments-0.1.1
 docker compose build
 docker compose up -d --no-build --pull never
 ```

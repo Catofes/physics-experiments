@@ -2,14 +2,16 @@
 
 容器默认端口为 `8080`，无数据库、持久化业务数据或配置密钥。正式镜像发布成功后支持 Linux amd64 与 arm64，Docker 会自动选择对应架构。
 
+自 v0.1.1 起，镜像仅声明 `8080/tcp`，Caddy 管理接口和自动 HTTPS 均已关闭。更新镜像后需重新创建容器，端口列表才会同步更新；仅重启旧容器不会改变镜像的端口声明。
+
 ## 使用正式镜像
 
-先在 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases) 确认目标版本已经发布。下面的 `0.1.0` 是首版示例，不代表该版本已经上架。
+先在 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases) 确认目标版本已经发布。以下以 `0.1.1` 为例。
 
 使用源码仓库中的 `compose.production.yaml`，在同目录建立 `.env`：
 
 ```dotenv
-IMAGE=ghcr.io/catofes/physics-experiments:0.1.0
+IMAGE=ghcr.io/catofes/physics-experiments:0.1.1
 PORT=8080
 ```
 
@@ -29,8 +31,8 @@ docker compose -f compose.production.yaml ps
 
 ```sh
 sha256sum -c SHA256SUMS
-tar -xzf physics-experiments-0.1.0.tar.gz
-cd physics-experiments-0.1.0
+tar -xzf physics-experiments-0.1.1.tar.gz
+cd physics-experiments-0.1.1
 docker compose build
 docker compose up -d --no-build --pull never
 ```
