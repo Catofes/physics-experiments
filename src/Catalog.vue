@@ -47,29 +47,11 @@ const covers = import.meta.glob("./covers/*.svg", {
       ><span class="brand-mark" aria-hidden="true">φ</span
       ><span>物理实验室<small>高中物理 · 课堂交互演示</small></span></RouterLink
     >
-    <span class="header-note">观察 · 调节 · 理解</span>
   </header>
   <main class="page">
-    <section class="intro" aria-labelledby="intro-title">
-      <div>
-        <p class="eyebrow">让每一个物理过程，看得见</p>
-        <h1 id="intro-title">把物理，<span>放到眼前。</span></h1>
-        <p class="intro-copy">
-          从抽象的规律，到直观的变化。<br />选择一个实验，和学生一起观察、提问、探索。
-        </p>
-      </div>
-      <div class="intro-note">
-        <span class="note-orbit" aria-hidden="true">↗</span>
-        <p>一个问题，<br />一次亲眼看见的发现。</p>
-        <span>为课堂演示而准备</span>
-      </div>
-    </section>
     <section id="catalog" aria-labelledby="catalog-title">
       <div class="catalog-heading">
-        <div>
-          <p class="eyebrow">EXPLORE / 实验目录</p>
-          <h2 id="catalog-title">今天，探索什么？</h2>
-        </div>
+        <h1 id="catalog-title">实验目录</h1>
         <label class="search">
           <svg
             aria-hidden="true"
@@ -136,8 +118,7 @@ const covers = import.meta.glob("./covers/*.svg", {
           </div>
           <div class="card-body">
             <div class="card-heading">
-              <h3>{{ item.title }}</h3>
-              <span class="card-arrow">↗</span>
+              <h2>{{ item.title }}</h2>
             </div>
             <p class="card-description">{{ item.description }}</p>
             <div class="tags">
@@ -147,7 +128,7 @@ const covers = import.meta.glob("./covers/*.svg", {
             </div>
           </div>
           <div class="card-foot">
-            <span>交互演示</span><span class="card-start">进入实验 →</span>
+            <span class="card-start">进入实验 →</span>
           </div>
         </RouterLink>
       </div>
@@ -163,16 +144,8 @@ const covers = import.meta.glob("./covers/*.svg", {
         </button>
       </div>
     </section>
-    <div class="classroom-note">
-      <span aria-hidden="true">↗</span>
-      <p>
-        <strong>让演示跟着课堂走</strong
-        ><span>进入实验后可全屏展示，留更多空间给观察与讨论。</span>
-      </p>
-    </div>
   </main>
   <footer class="site-footer">
-    <span>物理实验室 · v{{ version }}</span
-    ><span>在观察中发现，在探索中理解。</span>
+    <span>物理实验室 · v{{ version }}</span>
   </footer>
 </template>
