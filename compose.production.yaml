@@ -1,0 +1,6 @@
+services:
+  physics-experiments:
+    image: ${IMAGE:?请设置 IMAGE 为固定版本的镜像地址}
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: unless-stopped

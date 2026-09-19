@@ -1,0 +1,6 @@
+services:
+  physics-experiments:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    restart: unless-stopped

@@ -1,0 +1,28 @@
+{
+  "name": "physics-experiments",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "dev": "vite --host 0.0.0.0",
+    "check:version": "node scripts/version.mjs",
+    "build": "npm run check:version && npm test && vite build",
+    "package": "npm run build && node scripts/package-release.mjs",
+    "test:e2e": "playwright test",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "three": "0.185.1",
+    "vue": "^3.5.43",
+    "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "vite": "^8.0.0"
+  }
+}

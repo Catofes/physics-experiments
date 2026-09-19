@@ -1,0 +1,157 @@
+name: Build And Release
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  check:
+    name: Test, Package And Container Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image: ${{ steps.version.outputs.image }}
+    env:
+      BUILD_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Validate release version
+        id: version
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          version=$(node scripts/version.mjs)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            test -s "docs/releases/$GITHUB_REF_NAME.md"
+          fi
+      - run: npm ci
+      - name: Build and package static delivery
+        env:
+          RELEASE_IMAGE: ${{ steps.version.outputs.image }}
+        run: npm run package
+      - name: Verify source Dockerfile also builds
+        run: docker build --build-arg BUILD_REVISION="$BUILD_REVISION" -t physics-experiments:source .
+      - name: Verify archive and start its container
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          (cd release && sha256sum -c SHA256SUMS)
+          tar -xzf "release/physics-experiments-$VERSION.tar.gz" -C "$RUNNER_TEMP"
+          docker build -t physics-experiments:ci "$RUNNER_TEMP/physics-experiments-$VERSION"
+          docker run -d --name physics-ci -p 127.0.0.1:4173:8080 physics-experiments:ci
+          curl --fail --retry 20 --retry-all-errors --retry-delay 1 --max-time 2 http://127.0.0.1:4173/healthz
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test desktop and mobile in the container
+        env:
+          BASE_URL: http://127.0.0.1:4173
+        run: npm run test:e2e
+      - name: Upload browser failure report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-failure-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload verified delivery package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-assets
+          path: release/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Stop test container
+        if: always()
+        run: docker rm -f physics-ci || true
+
+  publish:
+    name: Publish GHCR And GitHub Release
+    needs: check
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: publish-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      IMAGE: ${{ needs.check.outputs.image }}
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+          path: release
+      - name: Unpack verified delivery
+        id: delivery
+        run: |
+          (cd release && sha256sum -c SHA256SUMS)
+          mkdir .delivery
+          tar -xzf "release/physics-experiments-$VERSION.tar.gz" -C .delivery
+          echo "context=.delivery/physics-experiments-$VERSION" >> "$GITHUB_OUTPUT"
+          created=$(jq -r .builtAt ".delivery/physics-experiments-$VERSION/dist/version.json")
+          echo "created=$created" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish both architectures from the tested static files
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ steps.delivery.outputs.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.VERSION }}
+            ${{ env.IMAGE }}:v${{ env.VERSION }}
+            ${{ env.IMAGE }}:sha-${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.created=${{ steps.delivery.outputs.created }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify published architectures
+        run: |
+          docker buildx imagetools inspect "$IMAGE:$VERSION" --raw > /tmp/manifest.json
+          jq -e 'any(.manifests[]; .platform.os == "linux" and .platform.architecture == "amd64") and any(.manifests[]; .platform.os == "linux" and .platform.architecture == "arm64")' /tmp/manifest.json
+      - name: Create GitHub Release after image publication succeeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag \
+            --title "物理实验室 $RELEASE_TAG" \
+            --notes-file "docs/releases/$RELEASE_TAG.md" \
+            "release/physics-experiments-$VERSION.tar.gz" release/SHA256SUMS

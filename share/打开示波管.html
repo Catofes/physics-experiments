@@ -1,0 +1,1500 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="高中物理示波管原理 3D 交互演示" />
+    <title>示波管原理 · 3D 交互演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #070b12;
+}
+
+body {
+  color: #e6edf6;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #24364c;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+</style>
+  </head>
+  <body>
+    <div id="app">
+      <div style="height:100%;display:grid;place-items:center;color:#9fb3c8;font-family:system-ui,sans-serif">
+        正在加载 3D 示波管……
+      </div>
+    </div>
+    <script>
+      window.setTimeout(function () {
+        if (!document.querySelector('#app canvas')) {
+          document.getElementById('app').innerHTML =
+            '<div style="height:100%;display:grid;place-items:center;padding:32px;text-align:center;color:#d7e2ee;font:16px/1.8 system-ui,sans-serif">' +
+            '<div><strong style="font-size:20px">加载未完成</strong><br>请确认已连接网络，然后刷新页面。<br>' +
+            '<span style="color:#8fa5ba">本文件可直接双击打开，首次启动需要读取 3D 组件。</span></div></div>';
+        }
+      }, 10000);
+    </script>
+    <script type="module">
+      import * as THREE from 'https://esm.sh/three@0.185.1';
+      import { OrbitControls } from 'https://esm.sh/three@0.185.1/examples/jsm/controls/OrbitControls.js';
+
+const GEO = {
+    gunExit: -4.35,
+    yPlate: {
+        start: -3.45,
+        end: -2.35
+    },
+    xPlate: {
+        start: -1.95,
+        end: -0.85
+    },
+    screenX: 5.6,
+    screenR: 2.35,
+    v0: 6,
+    gainY: 0.044,
+    gainX: 0.052
+};
+const TWO_PI = Math.PI * 2;
+function sawtooth(t, freq, amp, flyback, phaseDeg = 0) {
+    if (freq <= 0 || amp <= 0) return {
+        v: 0,
+        blank: false
+    };
+    const period = 1 / freq;
+    const phase = (t % period / period + phaseDeg / 360) % 1;
+    const traceFrac = 1 - flyback;
+    if (phase < traceFrac) {
+        const k = phase / traceFrac;
+        return {
+            v: -amp + 2 * amp * k,
+            blank: false
+        };
+    }
+    const k = (phase - traceFrac) / Math.max(flyback, 1e-4);
+    return {
+        v: amp - 2 * amp * Math.min(k, 1),
+        blank: true
+    };
+}
+function signalWave(type, phase) {
+    switch(type){
+        case 'sine':
+            return Math.sin(phase);
+        case 'square':
+            return Math.sin(phase) >= 0 ? 1 : -1;
+        case 'triangle':
+            return 2 / Math.PI * Math.asin(Math.sin(phase));
+        case 'dc':
+        default:
+            return 0;
+    }
+}
+function sampleVoltages(state, t) {
+    const yPhaseRad = state.yPhase * Math.PI / 180;
+    const ac = state.ySignal === 'dc' ? 0 : signalWave(state.ySignal, TWO_PI * state.yFreq * t + yPhaseRad) * state.yAmp;
+    const uy = state.yDc + ac;
+    const sweep = state.sweepOn ? sawtooth(t, state.sweepFreq, state.sweepAmp, state.flyback, state.sweepPhase) : {
+        v: 0,
+        blank: false
+    };
+    return {
+        t,
+        uy,
+        ux: sweep.v,
+        blank: state.sweepOn ? sweep.blank : false
+    };
+}
+function computeBeam(uy, ux) {
+    const { gunExit, yPlate, xPlate, screenX, v0, gainY, gainX } = GEO;
+    const ay = uy * gainY * v0 * v0 / ((yPlate.end - yPlate.start) * (screenX - (yPlate.start + yPlate.end) / 2));
+    const az = -(ux * gainX * v0 * v0) / ((xPlate.end - xPlate.start) * (screenX - (xPlate.start + xPlate.end) / 2));
+    const pts = [];
+    const push = (x, y, z)=>pts.push({
+            x,
+            y,
+            z
+        });
+    push(gunExit, 0, 0);
+    let x = gunExit;
+    let y = 0;
+    let z = 0;
+    let vy = 0;
+    let vz = 0;
+    {
+        const x0 = yPlate.start;
+        const x1 = yPlate.end;
+        const dt = (x1 - x0) / v0;
+        push(x0, y, z);
+        const STEPS = 8;
+        for(let i = 1; i < STEPS; i++){
+            const tt = dt * i / STEPS;
+            push(x0 + v0 * tt, y + vy * tt + 0.5 * ay * tt * tt, z);
+        }
+        y = y + vy * dt + 0.5 * ay * dt * dt;
+        vy = vy + ay * dt;
+        x = x1;
+        push(x, y, z);
+    }
+    {
+        const x1 = xPlate.start;
+        const dt = (x1 - x) / v0;
+        y = y + vy * dt;
+        z = z + vz * dt;
+        x = x1;
+        push(x, y, z);
+    }
+    {
+        const x1 = xPlate.end;
+        const dt = (x1 - x) / v0;
+        const STEPS = 8;
+        for(let i = 1; i <= STEPS; i++){
+            const tt = dt * i / STEPS;
+            push(x + v0 * tt, y + vy * tt, z + vz * tt + 0.5 * az * tt * tt);
+        }
+        y = y + vy * dt;
+        z = z + vz * dt + 0.5 * az * dt * dt;
+        vz = vz + az * dt;
+        x = x1;
+    }
+    {
+        const dt = (screenX - x) / v0;
+        y = y + vy * dt;
+        z = z + vz * dt;
+        push(screenX, y, z);
+    }
+    return pts;
+}
+function screenSpot(uy, ux) {
+    return {
+        y: GEO.gainY * uy,
+        sx: GEO.gainX * ux
+    };
+}
+const DEFAULT_STATE = {
+    ySignal: 'sine',
+    yDc: 0,
+    yAmp: 22,
+    yFreq: 0.5,
+    yPhase: 0,
+    sweepOn: true,
+    sweepAmp: 24,
+    sweepFreq: 0.5,
+    sweepPhase: 0,
+    flyback: 0.08,
+    persistence: 0.82
+};
+
+
+
+function makeLabelTexture(text, opts = {}) {
+    const { color = '#e6edf6', accent = '#38e1ff', sub } = opts;
+    const dpr = 2;
+    const fontSize = 30;
+    const subFontSize = 20;
+    const padX = 18;
+    const padY = 10;
+    const measure = document.createElement('canvas').getContext('2d');
+    if (!measure) throw new Error('canvas 2d context unavailable');
+    measure.font = `600 ${fontSize}px "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`;
+    const mainW = measure.measureText(text).width;
+    let subW = 0;
+    if (sub) {
+        measure.font = `500 ${subFontSize}px ui-monospace, Menlo, Consolas, monospace`;
+        subW = measure.measureText(sub).width;
+    }
+    const w = Math.ceil(Math.max(mainW, subW) + padX * 2);
+    const h = Math.ceil(fontSize + padY * 2 + (sub ? subFontSize + 4 : 0));
+    const canvas = document.createElement('canvas');
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas 2d context unavailable');
+    ctx.scale(dpr, dpr);
+    const radius = 8;
+    ctx.beginPath();
+    ctx.roundRect(0.5, 0.5, w - 1, h - 1, radius);
+    ctx.fillStyle = 'rgba(14, 22, 34, 0.78)';
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(56, 225, 255, 0.35)';
+    ctx.stroke();
+    ctx.fillStyle = accent;
+    ctx.fillRect(0.5, 6, 3, h - 12);
+    ctx.fillStyle = color;
+    ctx.font = `600 ${fontSize}px "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, padX, sub ? padY + fontSize / 2 - 2 : h / 2);
+    if (sub) {
+        ctx.fillStyle = accent;
+        ctx.font = `500 ${subFontSize}px ui-monospace, Menlo, Consolas, monospace`;
+        ctx.fillText(sub, padX, padY + fontSize + 4 + subFontSize / 2);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    return tex;
+}
+function makeLabelSprite(text, opts = {}) {
+    const tex = makeLabelTexture(text, opts);
+    const mat = new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+        depthTest: false
+    });
+    const sprite = new THREE.Sprite(mat);
+    const aspect = tex.image.width / tex.image.height;
+    const height = opts.scale ?? 0.42;
+    sprite.scale.set(height * aspect, height, 1);
+    sprite.renderOrder = 50;
+    return sprite;
+}
+
+
+
+
+
+
+const VIEWS = {
+    perspective: {
+        pos: new THREE.Vector3(8.6, 4.4, 7.8),
+        target: new THREE.Vector3(0.6, 0, 0)
+    },
+    front: {
+        pos: new THREE.Vector3(GEO.screenX + 3.4, 0.15, 0.01),
+        target: new THREE.Vector3(GEO.screenX, 0, 0)
+    },
+    side: {
+        pos: new THREE.Vector3(0.4, 1.4, 12.5),
+        target: new THREE.Vector3(0.4, 0, 0)
+    },
+    top: {
+        pos: new THREE.Vector3(0.4, 12.5, 0.01),
+        target: new THREE.Vector3(0.4, 0, 0)
+    }
+};
+const COLOR = {
+    bg: 0x070b12,
+    glass: 0x9fc6e8,
+    metal: 0xb8c2d0,
+    beam: 0xff5d8f,
+    beamCore: 0xffd7e0,
+    phosphor: 0x7dffa8,
+    filament: 0xff8a3d,
+    pos: 0xff4d6d,
+    neg: 0x38e1ff
+};
+const ELECTRON_COUNT = 26;
+function makeGlowTexture(inner, outer) {
+    const s = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = s;
+    canvas.height = s;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas 2d context unavailable');
+    const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    g.addColorStop(0, inner);
+    g.addColorStop(0.4, outer);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, s, s);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+}
+class ScopeScene {
+    container;
+    renderer;
+    scene = new THREE.Scene();
+    camera;
+    controls;
+    clock = new THREE.Clock();
+    simTime = 0;
+    raf = 0;
+    resizeObserver;
+    state;
+    viewTransition = null;
+    yPlates = [];
+    xPlates = [];
+    yTerminals = [];
+    xTerminals = [];
+    filament;
+    beamLine;
+    beamGlow;
+    electrons;
+    electronPhases = new Float32Array(ELECTRON_COUNT);
+    screenCanvas;
+    screenCtx;
+    screenTexture;
+    clearRequested = false;
+    onSample = null;
+    constructor(container, state){
+        this.container = container;
+        this.state = {
+            ...state
+        };
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setSize(container.clientWidth, container.clientHeight);
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.15;
+        container.appendChild(this.renderer.domElement);
+        this.scene.background = new THREE.Color(COLOR.bg);
+        this.scene.fog = new THREE.Fog(COLOR.bg, 18, 42);
+        this.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        this.camera.position.copy(VIEWS.perspective.pos);
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.target.copy(VIEWS.perspective.target);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        this.controls.minDistance = 3.5;
+        this.controls.maxDistance = 32;
+        this.controls.addEventListener('start', ()=>{
+            this.viewTransition = null;
+        });
+        this.buildLights();
+        this.buildTube();
+        this.buildGun();
+        this.buildPlatesAndTerminals();
+        this.buildScreen();
+        this.buildBeam();
+        this.buildLabels();
+        this.buildFloor();
+        for(let i = 0; i < ELECTRON_COUNT; i++){
+            this.electronPhases[i] = i / ELECTRON_COUNT;
+        }
+        this.resizeObserver = new ResizeObserver(()=>this.handleResize());
+        this.resizeObserver.observe(container);
+        this.animate();
+    }
+    updateState(patch) {
+        Object.assign(this.state, patch);
+    }
+    setView(name) {
+        const v = VIEWS[name];
+        this.viewTransition = {
+            fromPos: this.camera.position.clone(),
+            toPos: v.pos.clone(),
+            fromTarget: this.controls.target.clone(),
+            toTarget: v.target.clone(),
+            t: 0
+        };
+    }
+    clearPhosphor() {
+        this.clearRequested = true;
+    }
+    dispose() {
+        cancelAnimationFrame(this.raf);
+        this.resizeObserver.disconnect();
+        this.controls.dispose();
+        this.renderer.dispose();
+        this.screenTexture.dispose();
+        this.renderer.domElement.remove();
+    }
+    buildLights() {
+        this.scene.add(new THREE.AmbientLight(0x88aacc, 0.55));
+        const key = new THREE.DirectionalLight(0xcfe6ff, 1.1);
+        key.position.set(6, 10, 8);
+        this.scene.add(key);
+        const fill = new THREE.DirectionalLight(0x335577, 0.5);
+        fill.position.set(-8, -4, -6);
+        this.scene.add(fill);
+        const warm = new THREE.PointLight(COLOR.filament, 1.4, 6, 2);
+        warm.position.set(-4.9, 0, 0);
+        this.scene.add(warm);
+        const screenGlow = new THREE.PointLight(COLOR.phosphor, 0.9, 8, 2);
+        screenGlow.position.set(GEO.screenX - 0.5, 0, 0);
+        this.scene.add(screenGlow);
+    }
+    glassMaterial() {
+        return new THREE.MeshPhysicalMaterial({
+            color: COLOR.glass,
+            transparent: true,
+            opacity: 0.1,
+            roughness: 0.08,
+            metalness: 0,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            clearcoat: 1,
+            clearcoatRoughness: 0.1
+        });
+    }
+    buildTube() {
+        const glass = this.glassMaterial();
+        const neckLen = 2.6 - -5.2;
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, neckLen, 48, 1, true), glass);
+        neck.rotation.z = -Math.PI / 2;
+        neck.position.x = (-5.2 + 2.6) / 2;
+        this.scene.add(neck);
+        const coneLen = GEO.screenX - 2.6;
+        const cone = new THREE.Mesh(new THREE.CylinderGeometry(GEO.screenR + 0.15, 1.05, coneLen, 48, 1, true), glass);
+        cone.rotation.z = -Math.PI / 2;
+        cone.position.x = (2.6 + GEO.screenX) / 2;
+        this.scene.add(cone);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x6fa8c9,
+            transparent: true,
+            opacity: 0.35,
+            depthWrite: false
+        });
+        const ringXs = [
+            [
+                -5.2,
+                1.05
+            ],
+            [
+                2.6,
+                1.05
+            ],
+            [
+                GEO.screenX,
+                GEO.screenR + 0.15
+            ]
+        ];
+        for (const [x, r] of ringXs){
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.025, 10, 64), ringMat);
+            ring.rotation.y = Math.PI / 2;
+            ring.position.x = x;
+            this.scene.add(ring);
+        }
+    }
+    buildGun() {
+        const metal = new THREE.MeshStandardMaterial({
+            color: COLOR.metal,
+            metalness: 0.85,
+            roughness: 0.35
+        });
+        const darkMetal = new THREE.MeshStandardMaterial({
+            color: 0x5a6675,
+            metalness: 0.9,
+            roughness: 0.4
+        });
+        const cathode = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.7, 32), darkMetal);
+        cathode.rotation.z = -Math.PI / 2;
+        cathode.position.set(-4.95, 0, 0);
+        this.scene.add(cathode);
+        this.filament = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.035, 10, 24), new THREE.MeshBasicMaterial({
+            color: COLOR.filament
+        }));
+        this.filament.rotation.y = Math.PI / 2;
+        this.filament.position.set(-5.05, 0, 0);
+        this.scene.add(this.filament);
+        const discXs = [
+            -4.62,
+            -4.38
+        ];
+        const discRs = [
+            0.55,
+            0.72
+        ];
+        discXs.forEach((x, i)=>{
+            const disc = new THREE.Mesh(new THREE.TorusGeometry(discRs[i], 0.07, 12, 48), metal);
+            disc.rotation.y = Math.PI / 2;
+            disc.position.x = x;
+            this.scene.add(disc);
+            const cap = new THREE.Mesh(new THREE.CircleGeometry(discRs[i], 48), new THREE.MeshBasicMaterial({
+                color: 0x3a4656,
+                transparent: true,
+                opacity: 0.28,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            }));
+            cap.rotation.y = Math.PI / 2;
+            cap.position.x = x - 0.01;
+            this.scene.add(cap);
+        });
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 0.5, 32), darkMetal);
+        base.rotation.z = -Math.PI / 2;
+        base.position.set(-5.45, 0, 0);
+        this.scene.add(base);
+    }
+    buildPlatesAndTerminals() {
+        const plateMat = ()=>new THREE.MeshStandardMaterial({
+                color: COLOR.metal,
+                metalness: 0.9,
+                roughness: 0.3,
+                emissive: 0x000000,
+                emissiveIntensity: 0.6
+            });
+        const yLen = GEO.yPlate.end - GEO.yPlate.start;
+        const yMid = (GEO.yPlate.start + GEO.yPlate.end) / 2;
+        const xLen = GEO.xPlate.end - GEO.xPlate.start;
+        const xMid = (GEO.xPlate.start + GEO.xPlate.end) / 2;
+        const yGeo = new THREE.BoxGeometry(yLen, 0.07, 0.72);
+        const yTop = new THREE.Mesh(yGeo, plateMat());
+        yTop.position.set(yMid, 0.42, 0);
+        const yBottom = new THREE.Mesh(yGeo, plateMat());
+        yBottom.position.set(yMid, -0.42, 0);
+        this.yPlates.push(yTop, yBottom);
+        this.scene.add(yTop, yBottom);
+        const xGeo = new THREE.BoxGeometry(xLen, 0.72, 0.07);
+        const xFront = new THREE.Mesh(xGeo, plateMat());
+        xFront.position.set(xMid, 0, 0.42);
+        const xBack = new THREE.Mesh(xGeo, plateMat());
+        xBack.position.set(xMid, 0, -0.42);
+        this.xPlates.push(xFront, xBack);
+        this.scene.add(xFront, xBack);
+        const terminalGeo = new THREE.SphereGeometry(0.09, 20, 16);
+        const stalkMat = new THREE.MeshStandardMaterial({
+            color: 0x8b97a7,
+            metalness: 0.8,
+            roughness: 0.4
+        });
+        const makeTerminal = (pos, stalkFrom)=>{
+            const dir = new THREE.Vector3().subVectors(pos, stalkFrom);
+            const len = dir.length();
+            const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, len, 8), stalkMat);
+            stalk.position.copy(stalkFrom).addScaledVector(dir, 0.5);
+            stalk.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+            this.scene.add(stalk);
+            const ball = new THREE.Mesh(terminalGeo, new THREE.MeshStandardMaterial({
+                color: 0x222a36,
+                emissive: COLOR.neg,
+                emissiveIntensity: 1.2,
+                metalness: 0.4,
+                roughness: 0.4
+            }));
+            ball.position.copy(pos);
+            this.scene.add(ball);
+            return ball;
+        };
+        this.yTerminals.push(makeTerminal(new THREE.Vector3(yMid, 1.62, 0), new THREE.Vector3(yMid, 0.46, 0)), makeTerminal(new THREE.Vector3(yMid, -1.62, 0), new THREE.Vector3(yMid, -0.46, 0)));
+        this.xTerminals.push(makeTerminal(new THREE.Vector3(xMid, 0.85, 1.62), new THREE.Vector3(xMid, 0.85, 0.46)), makeTerminal(new THREE.Vector3(xMid, 0.85, -1.62), new THREE.Vector3(xMid, 0.85, -0.46)));
+    }
+    buildScreen() {
+        const size = 512;
+        this.screenCanvas = document.createElement('canvas');
+        this.screenCanvas.width = size;
+        this.screenCanvas.height = size;
+        const ctx = this.screenCanvas.getContext('2d');
+        if (!ctx) throw new Error('canvas 2d context unavailable');
+        this.screenCtx = ctx;
+        ctx.fillStyle = '#07120c';
+        ctx.fillRect(0, 0, size, size);
+        this.screenTexture = new THREE.CanvasTexture(this.screenCanvas);
+        this.screenTexture.colorSpace = THREE.SRGBColorSpace;
+        this.screenTexture.anisotropy = 8;
+        const screenMat = new THREE.MeshBasicMaterial({
+            map: this.screenTexture,
+            side: THREE.DoubleSide,
+            toneMapped: false
+        });
+        const screen = new THREE.Mesh(new THREE.CircleGeometry(GEO.screenR, 64), screenMat);
+        screen.rotation.y = Math.PI / 2;
+        screen.position.x = GEO.screenX;
+        this.scene.add(screen);
+        const bezel = new THREE.Mesh(new THREE.TorusGeometry(GEO.screenR + 0.08, 0.07, 14, 72), new THREE.MeshStandardMaterial({
+            color: COLOR.metal,
+            metalness: 0.9,
+            roughness: 0.3
+        }));
+        bezel.rotation.y = Math.PI / 2;
+        bezel.position.x = GEO.screenX - 0.02;
+        this.scene.add(bezel);
+    }
+    buildBeam() {
+        const glowMat = new THREE.LineBasicMaterial({
+            color: COLOR.beam,
+            transparent: true,
+            opacity: 0.3,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const coreMat = new THREE.LineBasicMaterial({
+            color: COLOR.beamCore,
+            transparent: true,
+            opacity: 0.95,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        this.beamGlow = new THREE.Line(new THREE.BufferGeometry(), glowMat);
+        this.beamLine = new THREE.Line(new THREE.BufferGeometry(), coreMat);
+        this.beamGlow.frustumCulled = false;
+        this.beamLine.frustumCulled = false;
+        this.scene.add(this.beamGlow, this.beamLine);
+        const positions = new Float32Array(ELECTRON_COUNT * 3);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const mat = new THREE.PointsMaterial({
+            size: 0.22,
+            map: makeGlowTexture('rgba(255,255,255,1)', 'rgba(255,93,143,0.85)'),
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: true,
+            toneMapped: false
+        });
+        this.electrons = new THREE.Points(geo, mat);
+        this.electrons.frustumCulled = false;
+        this.scene.add(this.electrons);
+    }
+    buildLabels() {
+        const add = (text, pos, opts = {})=>{
+            const s = makeLabelSprite(text, opts);
+            s.position.set(...pos);
+            this.scene.add(s);
+        };
+        add('电子枪', [
+            -4.9,
+            1.5,
+            0.9
+        ], {
+            accent: '#ff8a3d'
+        });
+        add('Y 偏转电极', [
+            -2.9,
+            2.15,
+            0
+        ], {
+            accent: '#ff5d8f',
+            sub: 'Y / Y′'
+        });
+        add('X 偏转电极', [
+            -1.55,
+            -2.0,
+            0.75
+        ], {
+            accent: '#38e1ff',
+            sub: 'X / X′'
+        });
+        add('荧光屏', [
+            GEO.screenX,
+            3.15,
+            0
+        ], {
+            accent: '#7dffa8'
+        });
+        add('Uy', [
+            -2.9,
+            1.95,
+            0.55
+        ], {
+            accent: '#ff5d8f',
+            scale: 0.3
+        });
+        add('Ux', [
+            -0.75,
+            1.2,
+            1.75
+        ], {
+            accent: '#38e1ff',
+            scale: 0.3
+        });
+    }
+    buildFloor() {
+        const grid = new THREE.GridHelper(36, 36, 0x1d3a52, 0x122233);
+        grid.position.y = -2.7;
+        grid.material.transparent = true;
+        grid.material.opacity = 0.35;
+        this.scene.add(grid);
+    }
+    handleResize() {
+        const w = this.container.clientWidth;
+        const h = this.container.clientHeight;
+        if (w === 0 || h === 0) return;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+    }
+    setTerminalColor(ball, positive) {
+        const mat = ball.material;
+        mat.emissive.setHex(positive ? COLOR.pos : COLOR.neg);
+        mat.color.setHex(positive ? 0x3a1220 : 0x0e2a33);
+    }
+    tintPlate(plate, colorHex, strength) {
+        const mat = plate.material;
+        if (strength < 0.02) {
+            mat.emissive.setHex(0x000000);
+            return;
+        }
+        mat.emissive.setHex(colorHex);
+        mat.emissiveIntensity = strength;
+    }
+    updateBeam(points, blank) {
+        const v3 = points.map((p)=>new THREE.Vector3(p.x, p.y, p.z));
+        const setLine = (line)=>{
+            line.geometry.dispose();
+            line.geometry = new THREE.BufferGeometry().setFromPoints(v3);
+        };
+        setLine(this.beamLine);
+        setLine(this.beamGlow);
+        const coreMat = this.beamLine.material;
+        const glowMat = this.beamGlow.material;
+        coreMat.opacity = blank ? 0.15 : 0.95;
+        glowMat.opacity = blank ? 0.05 : 0.3;
+        const cum = [
+            0
+        ];
+        let total = 0;
+        for(let i = 1; i < points.length; i++){
+            const dx = points[i].x - points[i - 1].x;
+            const dy = points[i].y - points[i - 1].y;
+            const dz = points[i].z - points[i - 1].z;
+            total += Math.sqrt(dx * dx + dy * dy + dz * dz);
+            cum.push(total);
+        }
+        const posAttr = this.electrons.geometry.getAttribute('position');
+        const speed = 0.55;
+        for(let i = 0; i < ELECTRON_COUNT; i++){
+            let p = (this.electronPhases[i] + this.simTime * speed) % 1;
+            const dist = p * total;
+            let seg = 0;
+            while(seg < cum.length - 2 && cum[seg + 1] < dist)seg++;
+            const segLen = cum[seg + 1] - cum[seg] || 1;
+            const f = (dist - cum[seg]) / segLen;
+            const a = points[seg];
+            const b = points[seg + 1];
+            posAttr.setXYZ(i, a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.z + (b.z - a.z) * f);
+        }
+        posAttr.needsUpdate = true;
+        this.electrons.material.opacity = blank ? 0.2 : 1;
+    }
+    drawGraticule(ctx, size) {
+        const c = size / 2;
+        const r = size * 0.43;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(125, 255, 168, 0.05)';
+        ctx.lineWidth = 1;
+        [
+            0.33,
+            0.66,
+            1
+        ].forEach((k)=>{
+            ctx.beginPath();
+            ctx.arc(c, c, r * k, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+        ctx.strokeStyle = 'rgba(125, 255, 168, 0.09)';
+        ctx.beginPath();
+        ctx.moveTo(c - r, c);
+        ctx.lineTo(c + r, c);
+        ctx.moveTo(c, c - r);
+        ctx.lineTo(c, c + r);
+        ctx.stroke();
+        for(let i = -4; i <= 4; i++){
+            if (i === 0) continue;
+            const t = r * i / 4;
+            ctx.beginPath();
+            ctx.moveTo(c + t, c - 5);
+            ctx.lineTo(c + t, c + 5);
+            ctx.moveTo(c - 5, c + t);
+            ctx.lineTo(c + 5, c + t);
+            ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(125, 255, 168, 0.28)';
+        ctx.font = '600 20px "PingFang SC", "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Y', c, c - r - 4);
+        ctx.fillText('Y′', c, c + r + 4);
+        ctx.fillText('X′', c - r - 16, c);
+        ctx.fillText('X', c + r + 16, c);
+        ctx.restore();
+    }
+    updatePhosphor(spotY, spotSx, blank, dt) {
+        const ctx = this.screenCtx;
+        const size = this.screenCanvas.width;
+        if (this.clearRequested) {
+            ctx.fillStyle = '#07120c';
+            ctx.fillRect(0, 0, size, size);
+            this.clearRequested = false;
+        }
+        const fadeAlpha = 0.32 * Math.pow(1 - this.state.persistence, 1.6) + 0.008;
+        ctx.fillStyle = `rgba(7, 18, 12, ${Math.min(fadeAlpha * dt * 60, 1)})`;
+        ctx.fillRect(0, 0, size, size);
+        this.drawGraticule(ctx, size);
+        if (!blank) {
+            const c = size / 2;
+            const pxPerUnit = size / (2 * GEO.screenR);
+            const px = c + spotSx * pxPerUnit;
+            const py = c - spotY * pxPerUnit;
+            const glow = ctx.createRadialGradient(px, py, 0, px, py, 30);
+            glow.addColorStop(0, 'rgba(125, 255, 168, 0.55)');
+            glow.addColorStop(0.35, 'rgba(74, 222, 128, 0.22)');
+            glow.addColorStop(1, 'rgba(74, 222, 128, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(px, py, 30, 0, Math.PI * 2);
+            ctx.fill();
+            const core = ctx.createRadialGradient(px, py, 0, px, py, 7);
+            core.addColorStop(0, 'rgba(255, 240, 245, 1)');
+            core.addColorStop(0.5, 'rgba(255, 120, 165, 0.9)');
+            core.addColorStop(1, 'rgba(255, 93, 143, 0)');
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.arc(px, py, 7, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        this.screenTexture.needsUpdate = true;
+    }
+    updateCamera(dt) {
+        const tr = this.viewTransition;
+        if (!tr) return;
+        tr.t = Math.min(tr.t + dt / 0.9, 1);
+        const e = 1 - Math.pow(1 - tr.t, 3);
+        this.camera.position.lerpVectors(tr.fromPos, tr.toPos, e);
+        this.controls.target.lerpVectors(tr.fromTarget, tr.toTarget, e);
+        if (tr.t >= 1) this.viewTransition = null;
+    }
+    animate = ()=>{
+        this.raf = requestAnimationFrame(this.animate);
+        const dt = Math.min(this.clock.getDelta(), 0.05);
+        this.simTime += dt;
+        const sample = sampleVoltages(this.state, this.simTime);
+        const { y: spotY, sx: spotSx } = screenSpot(sample.uy, sample.ux);
+        const beam = computeBeam(sample.uy, sample.ux);
+        this.updateBeam(beam, sample.blank);
+        this.updatePhosphor(spotY, spotSx, sample.blank, dt);
+        const fMat = this.filament.material;
+        const pulse = 0.75 + 0.25 * Math.sin(this.simTime * 6);
+        fMat.color.setRGB(1, 0.54 * pulse + 0.2, 0.24 * pulse + 0.08);
+        const yStrength = Math.min(Math.abs(sample.uy) / 40, 1) * 0.5;
+        this.tintPlate(this.yPlates[0], sample.uy >= 0 ? COLOR.pos : COLOR.neg, yStrength);
+        this.tintPlate(this.yPlates[1], sample.uy >= 0 ? COLOR.neg : COLOR.pos, yStrength);
+        const xStrength = Math.min(Math.abs(sample.ux) / 40, 1) * 0.5;
+        this.tintPlate(this.xPlates[1], sample.ux >= 0 ? COLOR.pos : COLOR.neg, xStrength);
+        this.tintPlate(this.xPlates[0], sample.ux >= 0 ? COLOR.neg : COLOR.pos, xStrength);
+        this.setTerminalColor(this.yTerminals[0], sample.uy >= 0);
+        this.setTerminalColor(this.yTerminals[1], sample.uy < 0);
+        this.setTerminalColor(this.xTerminals[1], sample.ux >= 0);
+        this.setTerminalColor(this.xTerminals[0], sample.ux < 0);
+        this.updateCamera(dt);
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+        if (this.onSample) {
+            this.onSample({
+                ...sample,
+                spotY,
+                spotSx
+            });
+        }
+    };
+}
+
+
+const PANEL_BG = 'rgba(14, 22, 34, 0.82)';
+const BORDER = '#24364c';
+const TEXT = '#e6edf6';
+const MUTED = '#8a99ad';
+const PINK = '#ff5d8f';
+const CYAN = '#38e1ff';
+const GREEN = '#7dffa8';
+const MONO = 'ui-monospace, Menlo, Consolas, monospace';
+const VIEW_BUTTONS = [
+    {
+        id: 'perspective',
+        label: '立体'
+    },
+    {
+        id: 'front',
+        label: '正视荧光屏'
+    },
+    {
+        id: 'side',
+        label: '侧视'
+    },
+    {
+        id: 'top',
+        label: '俯视'
+    }
+];
+const SIGNAL_TYPES = [
+    {
+        id: 'dc',
+        label: '直流'
+    },
+    {
+        id: 'sine',
+        label: '正弦波'
+    },
+    {
+        id: 'square',
+        label: '方波'
+    },
+    {
+        id: 'triangle',
+        label: '三角波'
+    }
+];
+const MONITOR_WINDOW = 10;
+const MONITOR_MAXV = 45;
+function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+  input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; width: 100%; height: 20px; cursor: pointer; }
+  input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: #24364c; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -6px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--thumb, #38e1ff); border: 2px solid #0e1622; box-shadow: 0 0 8px var(--thumb, #38e1ff); }
+  input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: #24364c; }
+  input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--thumb, #38e1ff);
+    border: 2px solid #0e1622; box-shadow: 0 0 8px var(--thumb, #38e1ff); }
+  input[type="range"]:disabled { opacity: 0.35; cursor: not-allowed; }
+  .scope-btn { transition: all .15s ease; }
+  .scope-btn:hover { border-color: #38e1ff !important; color: #e6f7ff !important; }
+  .scope-btn.active { background: rgba(56,225,255,.16); border-color: #38e1ff !important; color: #bdf3ff !important; }
+  .seg-btn { transition: all .15s ease; }
+  .seg-btn:hover { border-color: #3a5a78; color: #e6f7ff; }
+  .seg-btn.active { background: rgba(56,225,255,.14); border-color: #38e1ff; color: #bdf3ff; }
+  `;
+    document.head.appendChild(style);
+}
+function createUI(root, state, cb) {
+    injectStyles();
+    root.innerHTML = `
+  <div class="relative w-screen h-screen overflow-hidden select-none" style="background:#070b12; font-family: 'PingFang SC','Microsoft YaHei','Noto Sans SC',system-ui,sans-serif;">
+    <div id="canvas-mount" class="absolute inset-0"></div>
+
+    <!-- 左上角标题 -->
+    <div class="absolute top-4 left-4 pointer-events-none pr-24" style="z-index:10">
+      <div style="color:${TEXT};" class="text-base sm:text-lg font-semibold tracking-wide">示波管原理 · 3D 交互演示</div>
+      <div style="color:${MUTED};" class="text-xs mt-1 hidden sm:block">电子枪 → Y/X 偏转电极 → 荧光屏 ｜ 调节偏转电压与扫描电压观察波形形成</div>
+    </div>
+
+    <!-- 控制面板折叠开关（移动端默认收起） -->
+    <button id="panel-toggle" class="absolute top-4 right-4 rounded-md px-3 py-1.5 text-xs scope-btn"
+      style="z-index:30; border:1px solid ${BORDER}; background:${PANEL_BG}; color:${CYAN}; backdrop-filter: blur(8px);">控制</button>
+
+    <!-- 电压波形监测窗（可拖拽移动 / 右下角拖拽缩放 / 移动端自适应） -->
+    <div id="monitor-wrap"
+         class="absolute rounded-lg flex flex-col"
+         style="z-index:20; background:${PANEL_BG}; border:1px solid ${BORDER}; backdrop-filter: blur(8px); touch-action:none;">
+      <div id="monitor-drag" class="flex items-center justify-between gap-2 px-2.5 py-1 cursor-move"
+           style="border-bottom:1px solid ${BORDER}; touch-action:none;">
+        <span class="text-[11px] font-semibold tracking-widest truncate" style="color:${MUTED};">电压波形监测 · 拖动/缩放</span>
+        <span id="monitor-reset" class="text-[11px] cursor-pointer px-1.5 py-0.5 rounded scope-btn"
+              style="color:${CYAN}; border:1px solid ${BORDER};">重置</span>
+      </div>
+      <div class="relative flex-1 min-h-0">
+        <canvas id="monitor" class="block w-full h-full"></canvas>
+        <div id="monitor-resize" class="absolute" style="right:2px; bottom:2px; width:16px; height:16px; cursor:nwse-resize; touch-action:none;">
+          <svg width="12" height="12" viewBox="0 0 12 12" style="position:absolute; right:1px; bottom:1px;">
+            <path d="M11 1.5 L1.5 11 M11 5.5 L5.5 11 M11 9.5 L9.5 11" stroke="#8a99ad" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部操作提示 -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs pointer-events-none px-3 text-center hidden md:block" style="z-index:10; color:${MUTED};">
+      鼠标左键拖拽旋转 ｜ 滚轮缩放 ｜ 右键平移
+    </div>
+
+    <!-- 右侧控制面板 -->
+    <div id="control-panel"
+         class="absolute top-4 right-4 bottom-4 rounded-lg overflow-y-auto p-4 flex flex-col gap-5"
+         style="z-index:25; width:min(20rem, calc(100vw - 1.5rem)); background:${PANEL_BG}; border:1px solid ${BORDER}; backdrop-filter: blur(10px); color:${TEXT};">
+
+      <section>
+        <div class="text-xs font-semibold tracking-widest mb-2" style="color:${MUTED};">观察视角</div>
+        <div class="grid grid-cols-2 gap-2" id="view-btns">
+          ${VIEW_BUTTONS.map((b)=>`
+            <button data-view="${b.id}" class="scope-btn rounded-md py-1.5 text-xs"
+              style="border:1px solid ${BORDER}; background:rgba(36,54,76,.25); color:${TEXT};">${b.label}</button>`).join('')}
+        </div>
+      </section>
+
+      <section>
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold tracking-widest" style="color:${MUTED};">Y 偏转电压 Uy</div>
+          <div class="text-xs px-2 py-0.5 rounded" style="color:${PINK}; background:rgba(255,93,143,.12); font-family:${MONO};">
+            <span id="uy-readout">0.0</span> V</div>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5 mb-3" id="signal-seg">
+          ${SIGNAL_TYPES.map((s)=>`
+            <button data-signal="${s.id}" class="seg-btn rounded-md py-1 text-xs"
+              style="border:1px solid ${BORDER}; background:transparent; color:${MUTED};">${s.label}</button>`).join('')}
+        </div>
+        <div id="sliders-y"></div>
+      </section>
+
+      <section>
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold tracking-widest" style="color:${MUTED};">X 扫描电压 Ux（锯齿波）</div>
+          <label class="flex items-center gap-1.5 text-xs cursor-pointer" style="color:${CYAN};">
+            <input type="checkbox" id="sweep-toggle" checked style="accent-color:${CYAN}; width:14px; height:14px;" />
+            扫描
+          </label>
+        </div>
+        <div class="text-xs px-2 py-0.5 rounded mb-3 inline-block" style="color:${CYAN}; background:rgba(56,225,255,.1); font-family:${MONO};">
+          Ux = <span id="ux-readout">0.0</span> V
+        </div>
+        <div id="sliders-x"></div>
+        <div class="text-xs mt-1" style="color:${MUTED};">关闭扫描后，亮斑只随 Uy 在竖直方向偏转。</div>
+      </section>
+
+      <section>
+        <div class="text-xs font-semibold tracking-widest mb-2" style="color:${MUTED};">荧光屏</div>
+        <div id="sliders-screen"></div>
+        <button id="clear-btn" class="scope-btn w-full mt-2 rounded-md py-1.5 text-xs"
+          style="border:1px solid ${BORDER}; background:rgba(125,255,168,.08); color:${GREEN};">清屏（消除余晖）</button>
+      </section>
+
+      <section class="mt-auto pt-3 text-xs leading-5" style="color:${MUTED}; border-top:1px solid ${BORDER};">
+        偏转板接线柱：<span style="color:#ff6d86;">红 = 高电位（+）</span>、<span style="color:${CYAN};">青 = 低电位（−）</span>；
+        电子带负电，受力指向正极板，亮斑随之偏转。
+      </section>
+    </div>
+  </div>`;
+    const $ = (sel)=>{
+        const el = root.querySelector(sel);
+        if (!el) throw new Error(`element not found: ${sel}`);
+        return el;
+    };
+    const viewBtns = Array.from($('#view-btns').querySelectorAll('button'));
+    const setActiveView = (name)=>{
+        viewBtns.forEach((b)=>b.classList.toggle('active', b.dataset.view === name));
+    };
+    viewBtns.forEach((b)=>{
+        b.addEventListener('click', ()=>{
+            const name = b.dataset.view;
+            setActiveView(name);
+            cb.onView(name);
+        });
+    });
+    setActiveView('perspective');
+    const segBtns = Array.from($('#signal-seg').querySelectorAll('button'));
+    const setActiveSignal = (t)=>{
+        segBtns.forEach((b)=>b.classList.toggle('active', b.dataset.signal === t));
+    };
+    segBtns.forEach((b)=>{
+        b.addEventListener('click', ()=>{
+            const t = b.dataset.signal;
+            state.ySignal = t;
+            setActiveSignal(t);
+            cb.onStateChange({
+                ySignal: t
+            });
+            syncDisabled();
+        });
+    });
+    setActiveSignal(state.ySignal);
+    const sliderRows = [];
+    const buildSlider = (container, row)=>{
+        const wrap = document.createElement('div');
+        wrap.className = 'mb-2.5';
+        wrap.innerHTML = `
+      <div class="flex items-center justify-between text-xs mb-0.5">
+        <span style="color:${MUTED};">${row.label}</span>
+        <span class="slider-val" style="color:${row.accent}; font-family:${MONO};">${row.format(row.get())}</span>
+      </div>
+      <input type="range" min="${row.min}" max="${row.max}" step="${row.step}" value="${row.get()}"
+        style="--thumb:${row.accent};" />`;
+        const input = wrap.querySelector('input');
+        const val = wrap.querySelector('.slider-val');
+        input.addEventListener('input', ()=>{
+            const v = parseFloat(input.value);
+            row.set(v);
+            val.textContent = row.format(v);
+            cb.onStateChange(statePatch());
+        });
+        container.appendChild(wrap);
+        sliderRows.push(row);
+        row.input = input;
+    };
+    const statePatch = ()=>({
+            yDc: state.yDc,
+            yAmp: state.yAmp,
+            yFreq: state.yFreq,
+            yPhase: state.yPhase,
+            sweepOn: state.sweepOn,
+            sweepAmp: state.sweepAmp,
+            sweepFreq: state.sweepFreq,
+            sweepPhase: state.sweepPhase,
+            flyback: state.flyback,
+            persistence: state.persistence
+        });
+    const yContainer = $('#sliders-y');
+    buildSlider(yContainer, {
+        label: '直流电压 Uy（V）',
+        accent: PINK,
+        min: -40,
+        max: 40,
+        step: 0.5,
+        get: ()=>state.yDc,
+        set: (v)=>{
+            state.yDc = v;
+        },
+        format: (v)=>`${v > 0 ? '+' : ''}${v.toFixed(1)}`
+    });
+    buildSlider(yContainer, {
+        label: '交流幅值（V）',
+        accent: PINK,
+        min: 0,
+        max: 40,
+        step: 0.5,
+        get: ()=>state.yAmp,
+        set: (v)=>{
+            state.yAmp = v;
+        },
+        format: (v)=>v.toFixed(1),
+        disabled: ()=>state.ySignal === 'dc'
+    });
+    buildSlider(yContainer, {
+        label: '信号频率（Hz）',
+        accent: PINK,
+        min: 0.1,
+        max: 2,
+        step: 0.05,
+        get: ()=>state.yFreq,
+        set: (v)=>{
+            state.yFreq = v;
+        },
+        format: (v)=>`${v.toFixed(2)} Hz`,
+        disabled: ()=>state.ySignal === 'dc'
+    });
+    buildSlider(yContainer, {
+        label: 'Uy 初相 φy（°）',
+        accent: PINK,
+        min: 0,
+        max: 360,
+        step: 5,
+        get: ()=>state.yPhase,
+        set: (v)=>{
+            state.yPhase = v;
+        },
+        format: (v)=>`${Math.round(v)}°`,
+        disabled: ()=>state.ySignal === 'dc'
+    });
+    const xContainer = $('#sliders-x');
+    buildSlider(xContainer, {
+        label: '扫描幅度（V，峰峰值）',
+        accent: CYAN,
+        min: 5,
+        max: 45,
+        step: 1,
+        get: ()=>state.sweepAmp,
+        set: (v)=>{
+            state.sweepAmp = v;
+        },
+        format: (v)=>v.toFixed(0),
+        disabled: ()=>!state.sweepOn
+    });
+    buildSlider(xContainer, {
+        label: '扫描频率（Hz）',
+        accent: CYAN,
+        min: 0.1,
+        max: 2,
+        step: 0.05,
+        get: ()=>state.sweepFreq,
+        set: (v)=>{
+            state.sweepFreq = v;
+        },
+        format: (v)=>`${v.toFixed(2)} Hz`,
+        disabled: ()=>!state.sweepOn
+    });
+    buildSlider(xContainer, {
+        label: 'Ux 初相 φx（°）',
+        accent: CYAN,
+        min: 0,
+        max: 360,
+        step: 5,
+        get: ()=>state.sweepPhase,
+        set: (v)=>{
+            state.sweepPhase = v;
+        },
+        format: (v)=>`${Math.round(v)}°`,
+        disabled: ()=>!state.sweepOn
+    });
+    buildSlider(xContainer, {
+        label: '回扫消隐占比',
+        accent: CYAN,
+        min: 0,
+        max: 0.3,
+        step: 0.01,
+        get: ()=>state.flyback,
+        set: (v)=>{
+            state.flyback = v;
+        },
+        format: (v)=>`${(v * 100).toFixed(0)}%`,
+        disabled: ()=>!state.sweepOn
+    });
+    const screenContainer = $('#sliders-screen');
+    buildSlider(screenContainer, {
+        label: '余晖强度',
+        accent: GREEN,
+        min: 0,
+        max: 0.97,
+        step: 0.01,
+        get: ()=>state.persistence,
+        set: (v)=>{
+            state.persistence = v;
+        },
+        format: (v)=>`${Math.round(v * 100)}%`
+    });
+    const syncDisabled = ()=>{
+        sliderRows.forEach((r)=>{
+            const input = r.input;
+            if (input && r.disabled) input.disabled = r.disabled();
+        });
+    };
+    syncDisabled();
+    const sweepToggle = $('#sweep-toggle');
+    sweepToggle.addEventListener('change', ()=>{
+        state.sweepOn = sweepToggle.checked;
+        cb.onStateChange({
+            sweepOn: state.sweepOn
+        });
+        syncDisabled();
+    });
+    $('#clear-btn').addEventListener('click', ()=>cb.onClear());
+    const uyReadout = $('#uy-readout');
+    const uxReadout = $('#ux-readout');
+    const panel = $('#control-panel');
+    const panelToggle = $('#panel-toggle');
+    const isNarrow = ()=>window.matchMedia('(max-width: 640px)').matches;
+    let panelOpen = !isNarrow();
+    const applyPanel = ()=>{
+        panel.classList.toggle('hidden', !panelOpen);
+        panelToggle.textContent = panelOpen ? '收起面板' : '控制面板';
+    };
+    panelToggle.addEventListener('click', ()=>{
+        panelOpen = !panelOpen;
+        applyPanel();
+    });
+    applyPanel();
+    const wrap = $('#monitor-wrap');
+    const dragHandle = $('#monitor-drag');
+    const resizeHandle = $('#monitor-resize');
+    const resetBtn = $('#monitor-reset');
+    const monitor = $('#monitor');
+    const mctx = monitor.getContext('2d');
+    if (!mctx) throw new Error('monitor 2d context unavailable');
+    const STORE_KEY = 'scope-monitor-layout';
+    const clamp = (v, lo, hi)=>Math.min(Math.max(v, lo), hi);
+    const defaultLayout = ()=>{
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (vw < 640) {
+            const w = Math.min(280, vw - 24);
+            return {
+                x: Math.round((vw - w) / 2),
+                y: Math.round(vh - 208),
+                w,
+                h: 168
+            };
+        }
+        return {
+            x: 16,
+            y: Math.round(vh - 244),
+            w: 320,
+            h: 196
+        };
+    };
+    let layout = defaultLayout();
+    try {
+        const saved = localStorage.getItem(STORE_KEY);
+        if (saved) {
+            const p = JSON.parse(saved);
+            if (p && typeof p.x === 'number' && typeof p.y === 'number' && typeof p.w === 'number' && typeof p.h === 'number') {
+                layout = {
+                    x: p.x,
+                    y: p.y,
+                    w: p.w,
+                    h: p.h
+                };
+            }
+        }
+    } catch  {}
+    const applyLayout = ()=>{
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        layout.w = clamp(layout.w, 190, vw - 16);
+        layout.h = clamp(layout.h, 120, vh - 16);
+        layout.x = clamp(layout.x, 0, vw - layout.w);
+        layout.y = clamp(layout.y, 0, vh - layout.h);
+        wrap.style.left = `${layout.x}px`;
+        wrap.style.top = `${layout.y}px`;
+        wrap.style.width = `${layout.w}px`;
+        wrap.style.height = `${layout.h}px`;
+        try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(layout));
+        } catch  {}
+    };
+    applyLayout();
+    resetBtn.addEventListener('pointerdown', (e)=>e.stopPropagation());
+    resetBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        layout = defaultLayout();
+        applyLayout();
+    });
+    const beginDrag = (e)=>{
+        e.preventDefault();
+        dragHandle.setPointerCapture(e.pointerId);
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const originX = layout.x;
+        const originY = layout.y;
+        const onMove = (ev)=>{
+            layout.x = originX + ev.clientX - startX;
+            layout.y = originY + ev.clientY - startY;
+            applyLayout();
+        };
+        const onUp = (ev)=>{
+            dragHandle.releasePointerCapture(ev.pointerId);
+            dragHandle.removeEventListener('pointermove', onMove);
+            dragHandle.removeEventListener('pointerup', onUp);
+            dragHandle.removeEventListener('pointercancel', onUp);
+        };
+        dragHandle.addEventListener('pointermove', onMove);
+        dragHandle.addEventListener('pointerup', onUp);
+        dragHandle.addEventListener('pointercancel', onUp);
+    };
+    dragHandle.addEventListener('pointerdown', beginDrag);
+    const beginResize = (e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        resizeHandle.setPointerCapture(e.pointerId);
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const originW = layout.w;
+        const originH = layout.h;
+        const onMove = (ev)=>{
+            layout.w = originW + ev.clientX - startX;
+            layout.h = originH + ev.clientY - startY;
+            applyLayout();
+        };
+        const onUp = (ev)=>{
+            resizeHandle.releasePointerCapture(ev.pointerId);
+            resizeHandle.removeEventListener('pointermove', onMove);
+            resizeHandle.removeEventListener('pointerup', onUp);
+            resizeHandle.removeEventListener('pointercancel', onUp);
+        };
+        resizeHandle.addEventListener('pointermove', onMove);
+        resizeHandle.addEventListener('pointerup', onUp);
+        resizeHandle.addEventListener('pointercancel', onUp);
+    };
+    resizeHandle.addEventListener('pointerdown', beginResize);
+    const resizeCanvas = ()=>{
+        const cw = Math.max(1, monitor.clientWidth);
+        const ch = Math.max(1, monitor.clientHeight);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const targetW = Math.round(cw * dpr);
+        const targetH = Math.round(ch * dpr);
+        if (monitor.width !== targetW || monitor.height !== targetH) {
+            monitor.width = targetW;
+            monitor.height = targetH;
+        }
+    };
+    new ResizeObserver(()=>resizeCanvas()).observe(wrap);
+    resizeCanvas();
+    window.addEventListener('resize', ()=>applyLayout());
+    const buffer = [];
+    const drawMonitor = ()=>{
+        resizeCanvas();
+        const ctx = mctx;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = monitor.width;
+        const h = monitor.height;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = '#0a1018';
+        ctx.fillRect(0, 0, w, h);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const cw = w / dpr;
+        const ch = h / dpr;
+        const stripH = ch / 2;
+        const drawStrip = (y0, label, color, key)=>{
+            ctx.strokeStyle = 'rgba(138,153,173,.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, y0 + stripH / 2);
+            ctx.lineTo(cw, y0 + stripH / 2);
+            ctx.stroke();
+            ctx.fillStyle = color;
+            ctx.font = '600 10px ui-monospace, Menlo, Consolas, monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(label, 7, y0 + 5);
+            if (buffer.length < 2) return;
+            const tMax = buffer[buffer.length - 1].t;
+            const tMin = tMax - MONITOR_WINDOW;
+            const xOf = (t)=>(t - tMin) / MONITOR_WINDOW * cw;
+            const yOf = (v)=>y0 + stripH / 2 - v / MONITOR_MAXV * (stripH / 2 - 12);
+            ctx.lineWidth = 1.5;
+            for(let i = 1; i < buffer.length; i++){
+                const a = buffer[i - 1];
+                const b = buffer[i];
+                if (b.t < tMin) continue;
+                const blankSeg = key === 'ux' && b.blank;
+                ctx.strokeStyle = blankSeg ? 'rgba(138,153,173,.35)' : color;
+                ctx.beginPath();
+                ctx.moveTo(xOf(Math.max(a.t, tMin)), yOf(a[key]));
+                ctx.lineTo(xOf(b.t), yOf(b[key]));
+                ctx.stroke();
+            }
+        };
+        drawStrip(0, 'Ux 扫描电压', CYAN, 'ux');
+        drawStrip(stripH, 'Uy 偏转电压', PINK, 'uy');
+    };
+    return {
+        pushSample (s) {
+            uyReadout.textContent = `${s.uy >= 0 ? '+' : ''}${s.uy.toFixed(1)}`;
+            uxReadout.textContent = `${s.ux >= 0 ? '+' : ''}${s.ux.toFixed(1)}`;
+            buffer.push({
+                t: s.t,
+                uy: s.uy,
+                ux: s.ux,
+                blank: s.blank
+            });
+            while(buffer.length > 0 && buffer[0].t < s.t - MONITOR_WINDOW - 1)buffer.shift();
+            drawMonitor();
+        }
+    };
+}
+
+
+
+
+
+function initApp() {
+    const app = document.getElementById('app');
+    if (!app) {
+        console.error('App element not found');
+        return;
+    }
+    const state = {
+        ...DEFAULT_STATE
+    };
+    let scene;
+    const ui = createUI(app, state, {
+        onStateChange: (patch)=>scene.updateState(patch),
+        onView: (v)=>scene.setView(v),
+        onClear: ()=>scene.clearPhosphor()
+    });
+    const mount = app.querySelector('#canvas-mount');
+    if (!mount) {
+        console.error('canvas mount not found');
+        return;
+    }
+    scene = new ScopeScene(mount, state);
+    scene.onSample = (s)=>ui.pushSample(s);
+}
+
+
+
+
+initApp();
+
+    </script>
+  </body>
+</html>

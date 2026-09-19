@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深蹲跳物理模型 · 动态演示</title>
+    <style>
+        :root {
+            --bg: #0f1420;
+            --panel: #171f30;
+            --panel-border: #26314a;
+            --text: #e8edf6;
+            --text-dim: #93a0b8;
+            --accent: #4f8cff;
+            --accent-hover: #6ea0ff;
+            --green: #34c07c;
+            --orange: #f09a3e;
+            --red: #e5534b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background:
+                radial-gradient(1200px 600px at 80% -10%, rgba(79, 140, 255, 0.12), transparent 60%),
+                radial-gradient(900px 500px at 10% 110%, rgba(52, 192, 124, 0.08), transparent 60%),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .app {
+            width: 100%;
+            max-width: 1080px;
+        }
+        header { text-align: center; margin-bottom: 22px; }
+        header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+        header p { color: var(--text-dim); font-size: 14px; margin-top: 6px; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 300px;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), var(--panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+            padding: 18px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #101828 0%, #141c2e 78%, #1a2338 100%);
+        }
+
+        .side h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin: 18px 0 10px;
+        }
+        .side h3:first-child { margin-top: 0; }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 11px 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border: 1px solid var(--panel-border);
+            background: #1d2740;
+            color: var(--text);
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: left;
+            transition: background 0.15s, border-color 0.15s, transform 0.05s;
+        }
+        .btn small {
+            display: block;
+            font-weight: 400;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        .btn:hover { background: #243154; border-color: #35466f; }
+        .btn:active { transform: scale(0.98); }
+        .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn.active small { color: rgba(255, 255, 255, 0.8); }
+        .btn.reset { text-align: center; color: var(--text-dim); background: transparent; }
+        .btn.reset:hover { color: var(--text); background: #1d2740; }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        #speedVal { min-width: 38px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .data-item {
+            background: #1d2740;
+            border: 1px solid var(--panel-border);
+            border-radius: 9px;
+            padding: 8px 10px;
+        }
+        .data-item .label { font-size: 11px; color: var(--text-dim); }
+        .data-item .value {
+            font-size: 15px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            margin-top: 2px;
+            white-space: nowrap;
+        }
+
+        .status {
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--text-dim);
+            background: #141b2c;
+            border: 1px solid var(--panel-border);
+            border-left: 3px solid var(--accent);
+            border-radius: 9px;
+            padding: 10px 12px;
+            min-height: 64px;
+        }
+        .math { color: var(--orange); font-weight: 700; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <header>
+        <h1>“深蹲跳”物理模型动态演示</h1>
+        <p>弹簧连接双质点系统：压缩释放 → 离地临界 → 连杆锁定</p>
+    </header>
+
+    <div class="layout">
+        <div class="card">
+            <canvas id="jumpCanvas" width="640" height="520"></canvas>
+        </div>
+
+        <div class="card side">
+            <h3>选择模型</h3>
+            <button class="btn" id="btn1" onclick="startModel(1)">1 · 基础纵跳<small>单质点竖直上抛，最高点 h</small></button>
+            <button class="btn" id="btn2" onclick="startModel(2)">2 · 离地临界<small>压缩 3x₀，弹簧伸至 x₀ 时 B 离地</small></button>
+            <button class="btn" id="btn3" onclick="startModel(3)">3 · 连杆锁定<small>压缩 10x₀，恢复原长后整体上升</small></button>
+            <button class="btn reset" onclick="resetSim()">⟲ 重置</button>
+
+            <h3>慢放倍率</h3>
+            <div class="slider-row">
+                <input type="range" id="speedInput" min="0.05" max="0.5" step="0.05" value="0.2">
+                <span id="speedVal">0.20</span>
+            </div>
+
+            <h3>模型参数</h3>
+            <div class="data-grid">
+                <div class="data-item"><div class="label">质量 m（每个物体）</div><div class="value">20</div></div>
+                <div class="data-item"><div class="label">重力加速度 g</div><div class="value">0.5</div></div>
+                <div class="data-item"><div class="label">静压缩量 x₀ = mg/k</div><div class="value">12 px</div></div>
+                <div class="data-item"><div class="label">劲度系数 k = mg/x₀</div><div class="value">≈ 0.833</div></div>
+                <div class="data-item"><div class="label">弹簧原长 L₀</div><div class="value">180 px</div></div>
+                <div class="data-item"><div class="label">物体边长</div><div class="value">40 px</div></div>
+            </div>
+
+            <h3>实时数据</h3>
+            <div class="data-grid">
+                <div class="data-item"><div class="label">A 速度</div><div class="value" id="dVA">0.00</div></div>
+                <div class="data-item"><div class="label">B 速度</div><div class="value" id="dVB">0.00</div></div>
+                <div class="data-item"><div class="label">弹簧形变（压/拉）</div><div class="value" id="dDef">—</div></div>
+                <div class="data-item"><div class="label">A 离地高度</div><div class="value" id="dH">0.0</div></div>
+            </div>
+
+            <h3>说明</h3>
+            <div class="status" id="status">准备就绪。请从上方选择一个模型开始演示。</div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const canvas = document.getElementById('jumpCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusTxt = document.getElementById('status');
+    const speedInput = document.getElementById('speedInput');
+    const speedVal = document.getElementById('speedVal');
+    const dVA = document.getElementById('dVA');
+    const dVB = document.getElementById('dVB');
+    const dDef = document.getElementById('dDef');
+    const dH = document.getElementById('dH');
+
+    // HiDPI 适配：按设备像素比放大画布，保持清晰
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.width, H = canvas.height;
+    if (dpr > 1) {
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.scale(dpr, dpr);
+    }
+
+    // 物理参数定义
+    const g = 0.5;      // 重力加速度（感官调节）
+    const m = 20;       // 每个物体的质量
+    const x0 = 12;      // 静压缩量：A 静置于 B 上时弹簧被压缩 x0，即 k·x0 = m·g
+    const k = (m * g) / x0;
+    const L0 = 180;     // 弹簧原长
+    const boxS = 40;    // 物体边长
+    const groundY = H - 70;
+    const centerX = W / 2;
+    const SUB = 10;     // 每帧物理子步数：细分积分步长，减小数值误差
+
+    let rafId = null;
+
+    const ball = {
+        yA: 0, yB: groundY, // yA 是 A 的顶端坐标，yB 是 B 的底端坐标
+        vA: 0, vB: 0,
+        locked: false,  // 模型 3：弹簧恢复原长后 A、B 是否锁定为整体
+        lifted: false,  // 模型 2：B 是否已经离地过（用于事件提示）
+        active: false,
+        type: 0
+    };
+
+    speedInput.addEventListener('input', () => {
+        speedVal.textContent = parseFloat(speedInput.value).toFixed(2);
+    });
+
+    function setActiveButton(type) {
+        [1, 2, 3].forEach(t => {
+            document.getElementById('btn' + t).classList.toggle('active', t === type);
+        });
+    }
+
+    function stopLoop() {
+        if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+        }
+    }
+
+    window.resetSim = function () {
+        stopLoop();
+        ball.active = false;
+        ball.locked = false;
+        ball.lifted = false;
+        ball.type = 0;
+        ball.vA = 0; ball.vB = 0;
+        ball.yB = groundY;
+        // 默认平衡态位置：B 在地面，A 在 B 上方，弹簧压缩 x0
+        ball.yA = groundY - boxS - (L0 - x0) - boxS;
+        setActiveButton(0);
+        statusTxt.innerHTML = "已重置。请从上方选择一个模型开始演示。";
+        updateData();
+        draw();
+    };
+
+    window.startModel = function (type) {
+        window.resetSim();
+        ball.type = type;
+        ball.active = true;
+        setActiveButton(type);
+
+        if (type === 1) {
+            statusTxt.innerHTML = "模型 1：质点 A 以初速度竖直上抛，最高点高度为 <span class='math'>h</span>。";
+            ball.yA = groundY - boxS;
+            ball.vA = -Math.sqrt(2 * g * 280);
+        } else if (type === 2) {
+            statusTxt.innerHTML = "模型 2：弹簧压缩 <span class='math'>3x₀</span> 释放。由能量守恒，A 恰好能把弹簧拉长 <span class='math'>x₀</span>——" +
+                "此时弹力 <span class='math'>k·x₀ = mg</span>，刚好抵消 B 的重力，B 处于<span class='math'>离地临界</span>（图中红色虚线）。";
+            ball.yA = groundY - boxS - (L0 - 3 * x0) - boxS;
+        } else if (type === 3) {
+            statusTxt.innerHTML = "模型 3：弹簧压缩 <span class='math'>10x₀</span> 释放。恢复原长瞬间 A、B 锁定为整体，" +
+                "由动量守恒速度减半（<span class='math'>v/2</span>），随后整体惯性上升。";
+            ball.yA = groundY - boxS - (L0 - 10 * x0) - boxS;
+        }
+        loop();
+    };
+
+    // 画圆角矩形
+    function roundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    function drawBox(cx, top, color, label) {
+        const x = cx - boxS / 2;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
+        roundRect(x, top, boxS, boxS, 7);
+        const grad = ctx.createLinearGradient(x, top, x, top + boxS);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, shade(color, -25));
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 17px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx, top + boxS / 2 + 1);
+    }
+
+    function shade(hex, amt) {
+        const n = parseInt(hex.slice(1), 16);
+        const r = Math.max(0, Math.min(255, (n >> 16) + amt));
+        const gC = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + amt));
+        const b = Math.max(0, Math.min(255, (n & 0xff) + amt));
+        return 'rgb(' + r + ',' + gC + ',' + b + ')';
+    }
+
+    function drawSpring(x, top, bottom) {
+        const lead = 14;          // 两端直线段
+        const turns = 10;
+        const amp = 13;
+        const bodyTop = top + lead;
+        const bodyBottom = bottom - lead;
+        const step = (bodyBottom - bodyTop) / (turns * 2);
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#8fa3c8';
+        ctx.lineWidth = 2.2;
+        ctx.lineJoin = 'round';
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, bodyTop);
+        for (let i = 0; i < turns * 2; i++) {
+            ctx.lineTo(x + (i % 2 === 0 ? amp : -amp), bodyTop + step * (i + 0.5));
+        }
+        ctx.lineTo(x, bodyBottom);
+        ctx.lineTo(x, bottom);
+        ctx.stroke();
+    }
+
+    function drawGround() {
+        // 地面条
+        ctx.fillStyle = '#2b3a55';
+        ctx.fillRect(0, groundY, W, 4);
+        // 斜纹阴影
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(143, 163, 200, 0.25)';
+        ctx.lineWidth = 1.5;
+        for (let x = 8; x < W; x += 18) {
+            ctx.moveTo(x, groundY + 4);
+            ctx.lineTo(x - 10, groundY + 18);
+        }
+        ctx.stroke();
+    }
+
+    // 离地临界线：B 贴地时，弹簧被拉长 x0 对应的 A 底面高度
+    // 此时弹力 k·x0 = m·g，恰好等于 B 的重力 —— 再拉一点 B 就会离地
+    function drawCriticalLine() {
+        const critY = groundY - boxS - (L0 + x0); // A 底面的临界高度
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(229, 83, 75, 0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(60, critY);
+        ctx.lineTo(W - 60, critY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(229, 83, 75, 0.9)';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('离地临界线：弹簧伸长 x₀（弹力 k·x₀ = mg）', 64, critY - 5);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawGround();
+
+        if (ball.type === 1) {
+            if (ball.active || ball.yA < groundY - boxS) {
+                drawBox(centerX, ball.yA, '#f09a3e', 'A');
+            } else {
+                drawBox(centerX, groundY - boxS, '#f09a3e', 'A');
+            }
+            return;
+        }
+
+        if ((ball.type === 2 || ball.type === 3) && ball.yB >= groundY - 0.5) {
+            drawCriticalLine();
+        }
+
+        // A 底部 = yA + boxS；B 顶部 = yB - boxS
+        drawSpring(centerX, ball.yA + boxS, ball.yB - boxS);
+        drawBox(centerX, ball.yA, '#4f8cff', 'A');
+        drawBox(centerX, ball.yB - boxS, '#34c07c', 'B');
+
+        if (ball.locked) {
+            ctx.strokeStyle = 'rgba(229, 83, 75, 0.9)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 5]);
+            roundRect(centerX - boxS / 2 - 8, ball.yA - 8, boxS + 16, (ball.yB - ball.yA) + 16, 10);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#e5534b';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('已锁定 (v/2)', centerX + boxS / 2 + 16, (ball.yA + ball.yB) / 2);
+        }
+    }
+
+    function updateData() {
+        dVA.textContent = ball.vA.toFixed(2);
+        dVB.textContent = (ball.type === 1 ? 0 : ball.vB).toFixed(2);
+        const bottomA = ball.yA + boxS;
+        dH.textContent = Math.max(0, groundY - bottomA).toFixed(1);
+        if (ball.type === 1) {
+            dDef.textContent = '—';
+        } else {
+            const currentL = (ball.yB - boxS) - (ball.yA + boxS);
+            const def = (L0 - currentL) / x0; // 正 = 压缩，负 = 拉伸
+            dDef.textContent = (def >= 0 ? '压 ' : '拉 ') + Math.abs(def).toFixed(2) + ' x₀';
+        }
+    }
+
+    // 单个物理子步，dt 为子步步长
+    function substep(dt) {
+        if (ball.type === 1) {
+            ball.vA += g * dt;
+            ball.yA += ball.vA * dt;
+            if (ball.yA > groundY - boxS) {
+                ball.yA = groundY - boxS;
+                ball.active = false;
+                statusTxt.innerHTML = "模型 1 结束：质点已落回地面。";
+            }
+        } else if (ball.type === 2) {
+            const currentL = (ball.yB - boxS) - (ball.yA + boxS);
+            const Fs = k * (L0 - currentL); // 正 = 压缩（推 A 向上），负 = 拉伸（拉 B 向上）
+            ball.vA += (g - Fs / m) * dt;
+            ball.yA += ball.vA * dt;
+            // B 离地条件：弹簧拉伸的拉力 -Fs 大于 B 的重力 m·g，即拉伸量超过 x₀
+            if (-Fs > m * g || ball.yB < groundY) {
+                ball.vB += (g + Fs / m) * dt;
+                ball.yB += ball.vB * dt;
+            }
+            if (ball.yB < groundY && !ball.lifted) {
+                ball.lifted = true;
+                statusTxt.innerHTML = "弹簧拉伸量达到 <span class='math'>x₀</span>：弹力 <span class='math'>k·x₀ = mg</span> " +
+                    "恰好等于 B 的重力，B 到达<span class='math'>离地临界</span>。3x₀ 正是临界压缩量，B 刚好离地即回落。";
+            }
+        } else if (ball.type === 3) {
+            if (!ball.locked) {
+                const currentL = (ball.yB - boxS) - (ball.yA + boxS);
+                const Fs = k * (L0 - currentL);
+                ball.vA += (g - Fs / m) * dt;
+                ball.yA += ball.vA * dt;
+                if (currentL >= L0) {
+                    // 弹簧恢复原长：A、B 锁定为整体，动量守恒 mv = 2m·v'，v' = v/2
+                    ball.locked = true;
+                    ball.vA = ball.vA / 2;
+                    ball.vB = ball.vA;
+                }
+            } else {
+                ball.vA += g * dt;
+                ball.vB = ball.vA;
+                ball.yA += ball.vA * dt;
+                ball.yB += ball.vB * dt;
+            }
+        }
+
+        if (ball.type !== 1 && ball.yB > groundY) {
+            ball.yB = groundY; ball.vB = 0;
+            if (ball.locked || (ball.type === 2 && ball.vA > 0)) {
+                ball.active = false;
+                statusTxt.innerHTML += "<br>演示结束。";
+            }
+        }
+    }
+
+    // 每帧细分 SUB 个子步推进物理，积分步长更小，关键时刻（离地、锁定）的读数更准
+    function step() {
+        const dt = parseFloat(speedInput.value);
+        for (let i = 0; i < SUB && ball.active; i++) {
+            substep(dt / SUB);
+        }
+    }
+
+    function loop() {
+        if (!ball.active) { draw(); updateData(); rafId = null; return; }
+        step();
+        updateData();
+        draw();
+        rafId = requestAnimationFrame(loop);
+    }
+
+    window.resetSim(); // 页面加载后立即初始化画面
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	root * /srv
+	encode zstd gzip
+	respond /healthz "ok" 200
+	header X-Content-Type-Options nosniff
+	header Referrer-Policy strict-origin-when-cross-origin
+	@html path / /index.html /experiments/* /version.json
+	header @html Cache-Control "no-cache"
+	@experiment path /experiments/*
+	rewrite @experiment /index.html
+	file_server
+}

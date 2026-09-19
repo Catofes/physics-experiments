@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" fill="none">
+  <defs><pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" stroke="#bed7d4" stroke-opacity=".3"/></pattern><linearGradient id="glass" x1="99" y1="90" x2="479" y2="216" gradientUnits="userSpaceOnUse"><stop stop-color="#c5dedb" stop-opacity=".4"/><stop offset="1" stop-color="#90bbb6" stop-opacity=".2"/></linearGradient></defs>
+  <path fill="#e6efec" d="M0 0h600v280H0z"/><path fill="url(#grid)" d="M0 0h600v280H0z"/>
+  <ellipse cx="304" cy="241" rx="190" ry="12" fill="#d5e3dd"/>
+  <path d="M113 111h146L432 56q49 12 49 93t-49 90l-173-57H113q-17-37 0-71Z" fill="url(#glass)" stroke="#7aaba5" stroke-width="1.8"/>
+  <ellipse cx="433" cy="148" rx="37" ry="91" fill="#d3e9df" stroke="#7aaba5" stroke-width="1.8"/><ellipse cx="433" cy="148" rx="28" ry="77" fill="#bddfd0" stroke="#a1c9ba"/>
+  <path d="M433 77v143m-24-96h48m-51 25h54m-51 25h48" stroke="#a0c7b8" stroke-opacity=".7"/>
+  <path d="M126 146h115q89 0 187-35" stroke="#4d9b71" stroke-width="8" opacity=".12"/><path d="M126 146h115q89 0 187-35" stroke="#53a87e" stroke-width="2"/>
+  <path d="M414 173q10-93 19-39t19-22" stroke="#328663" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="124" y="129" width="35" height="33" rx="4" fill="#a8c7c2" stroke="#6d9b96"/><path d="M172 128v37m9-42v47" stroke="#7baba5" stroke-width="3"/>
+  <path d="m214 115 51-9v9l-51 9Zm0 52 51 9v9l-51-9Z" fill="#d8b997" stroke="#b49c81"/><path d="m289 118 14-4v63l-14-4Z" fill="#9fbec9" stroke="#7a9ba8"/>
+  <g font-family="Georgia,serif" font-size="17" font-style="italic" fill="#72938b"><text x="226" y="88">Uᵧ</text><text x="291" y="204">Uₓ</text><text x="349" y="91">e⁻</text></g>
+</svg>
