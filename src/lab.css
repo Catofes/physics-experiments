@@ -483,3 +483,10 @@
     flex: none;
   }
 }
+
+.field-heading { font-size: 14px; color: #476152; margin: 0 0 8px; }
+.field-text, .field-notes { font-size: 12px; line-height: 1.8; color: #607668; margin: 8px 0; }
+.field-notes { padding-left: 20px; }
+.field-toggle { margin: 12px 0; white-space: normal; }
+.field-sample { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 12px; color: #476152; }
+.field-param .control-note { margin-bottom: 8px; }

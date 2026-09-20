@@ -12,7 +12,9 @@ test("目录、历史导航、暂停及重置", async ({ page }) => {
   await page.getByRole("button", { name: "暂停演示", exact: true }).click();
   const frozen = await page.locator(".readings").innerText();
   await page.waitForTimeout(150);
-  await expect(page.locator(".readings")).toHaveText(frozen, { useInnerText: true });
+  await expect(page.locator(".readings")).toHaveText(frozen, {
+    useInnerText: true,
+  });
   await page.getByRole("button", { name: /连杆锁定/ }).click();
   await page.getByRole("slider", { name: "慢放倍率" }).fill("0.1");
   await page.getByRole("button", { name: "重置实验", exact: true }).click();
@@ -40,7 +42,7 @@ test("目录、历史导航、暂停及重置", async ({ page }) => {
   await expect(page.getByRole("searchbox")).toHaveValue("动量");
   await page.getByRole("button", { name: "电磁学", exact: true }).click();
   await page.getByRole("button", { name: "查看全部实验", exact: true }).click();
-  await expect(page.locator(".experiment-card")).toHaveCount(2);
+  await expect(page.locator(".experiment-card")).toHaveCount(4);
 });
 
 test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL }) => {
@@ -99,7 +101,9 @@ test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL 
     await page.getByRole("button", { name: "暂停演示", exact: true }).click();
     const frozen = await page.locator(".voltage-readings").innerText();
     await page.waitForTimeout(150);
-    await expect(page.locator(".voltage-readings")).toHaveText(frozen, { useInnerText: true });
+    await expect(page.locator(".voltage-readings")).toHaveText(frozen, {
+      useInnerText: true,
+    });
     await page.getByRole("button", { name: "直流", exact: true }).click();
     await expect(
       page.getByRole("slider", { name: "交流幅值", exact: true }),
@@ -141,10 +145,17 @@ test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL 
 });
 
 test("部署地址直接访问、刷新、版本及无效实验", async ({ page, request }) => {
-  await page.goto("/experiments/cathode-ray");
-  await expect(page.locator(".scope-scene canvas")).toBeVisible();
-  await page.reload();
-  await expect(page.locator(".scope-scene canvas")).toBeVisible();
+  for (const [id, canvas] of [
+    ["cathode-ray", ".scope-scene canvas"],
+    ["magnetic-field", ".magnetic-scene canvas"],
+    ["electrostatic-field", ".electrostatic-scene canvas"],
+  ]) {
+    await page.goto(`/experiments/${id}`);
+    await expect(page.locator(canvas)).toBeVisible();
+    await page.reload();
+    await expect(page.locator(canvas)).toBeVisible();
+    await expect(page.locator(".stage-error")).toHaveCount(0);
+  }
   await page.goto("/experiments/unknown");
   await expect(
     page.getByRole("heading", { name: "这个实验暂时不在目录中" }),

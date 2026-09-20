@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" fill="none">
+<defs><pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" stroke="#bed7d4" stroke-opacity=".3"/></pattern><marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="m0 0 10 5-10 5" fill="#508e89"/></marker></defs>
+<path fill="#e6efec" d="M0 0h600v280H0z"/><path fill="url(#grid)" d="M0 0h600v280H0z"/>
+<g stroke="#508e89" stroke-width="1.8"><path d="M235 134C100 20 270 20 300 30S490 20 365 134" marker-mid="url(#arrow)"/><path d="M235 134C155 55 260 55 300 65S430 55 365 134" marker-mid="url(#arrow)"/><path d="M235 146C100 260 270 260 300 250S490 260 365 146" marker-mid="url(#arrow)"/><path d="M235 146C155 225 260 225 300 215S430 225 365 146" marker-mid="url(#arrow)"/><path d="M230 140C70 25 40 140 95 140S65 255 230 140"/><path d="M370 140C530 25 560 140 505 140S535 255 370 140"/></g>
+<rect x="225" y="115" width="150" height="50" rx="6" fill="#aac8d0" stroke="#709ca4"/><path d="M231 115h69v50h-69q-6 0-6-6v-38q0-6 6-6" fill="#c78c87"/>
+<g font-family="Georgia,serif" font-size="22" text-anchor="middle" fill="#fff"><text x="262" y="148">N</text><text x="338" y="148">S</text></g>
+<text x="480" y="62" font-family="Georgia,serif" font-style="italic" font-size="24" fill="#72938b">B</text>
+</svg>
