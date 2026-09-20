@@ -32,6 +32,7 @@ export function createElectrostaticSimulation(
     isInRodGroupConductor,
     fieldAt,
     potentialAt,
+    isInCavityExterior,
     isDrawablePotentialPoint,
     isInConductor,
     constrainCharge,
@@ -604,14 +605,19 @@ export function createElectrostaticSimulation(
 
   function drawEquipotentialLines() {
     const solution = getBemSolution();
-    const grid = makePotentialGrid(solution, 104, 68);
-    const levels = makeEquipotentialLevels(grid.values);
-    if (!levels.length) return;
+    // Choose levels independently: moving the source changes cavity values,
+    // but must not shift the exterior contours' selected potentials.
+    const regions = state.scene === "cavity" ? ["inner", "outer"] : [null];
     ctx.save();
     ctx.strokeStyle = "rgba(92, 112, 126, 0.34)";
     ctx.lineWidth = 1.1;
     ctx.setLineDash([5, 6]);
-    levels.forEach((level) => drawPotentialContour(grid, level));
+    regions.forEach((region) => {
+      const grid = makePotentialGrid(solution, 104, 68, region);
+      makeEquipotentialLevels(grid.values).forEach((level) =>
+        drawPotentialContour(grid, level),
+      );
+    });
     ctx.restore();
   }
 
@@ -629,7 +635,7 @@ export function createElectrostaticSimulation(
     ctx.restore();
   }
 
-  function makePotentialGrid(solution, cols, rows) {
+  function makePotentialGrid(solution, cols, rows, region) {
     const cells = [];
     const values = [];
     for (let row = 0; row <= rows; row += 1) {
@@ -638,7 +644,10 @@ export function createElectrostaticSimulation(
       for (let col = 0; col <= cols; col += 1) {
         const x = col / cols;
         const point = { x, y };
-        if (!isDrawablePotentialPoint(point, solution)) {
+        if (
+          !isDrawablePotentialPoint(point, solution) ||
+          (region && isInCavityExterior(point, solution) !== (region === "outer"))
+        ) {
           line.push({ x, y, value: NaN, drawable: false });
           continue;
         }

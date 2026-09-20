@@ -1,5 +1,42 @@
 import { test, expect } from "@playwright/test";
 
+test("腔内电荷拖动后腔外等势线保持不变", async ({ page }) => {
+  await page.goto("/experiments/electrostatic-field");
+  const canvas = page.locator(".electrostatic-scene canvas");
+  await expect(canvas).toBeVisible();
+  // Isolate equipotentials from the field lines' drag feedback animation.
+  for (const sign of ["正电荷", "负电荷"]) {
+    await page.getByRole("button", { name: "重置实验", exact: true }).click();
+    await page.getByRole("checkbox", { name: "电场线模型", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "表面感应电荷", exact: true }).uncheck();
+    await page.getByRole("button", { name: sign, exact: true }).click();
+    await canvas.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await canvas.evaluate((c) => {
+      window.__cavityPixels = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    });
+    const box = await canvas.boundingBox();
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.48);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.64, box.y + box.height * 0.5, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(() => canvas.evaluate((c) => {
+      const after = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+      let inner = 0, outer = 0;
+      for (let y = 0; y < c.height; y++) {
+        for (let x = 0; x < c.width; x++) {
+          const i = (y * c.width + x) * 4;
+          if (after[i] === window.__cavityPixels[i] && after[i + 1] === window.__cavityPixels[i + 1] && after[i + 2] === window.__cavityPixels[i + 2]) continue;
+          const r = Math.hypot(x - 0.56 * c.width, y - 0.5 * c.height) / c.width;
+          if (r > 0.255) outer++;
+          if (r < 0.112) inner++;
+        }
+      }
+      return { outer, innerChanged: inner > 0 };
+    })).toEqual({ outer: 0, innerChanged: true });
+  }
+});
+
 test("站内电磁场：场景、预测、参数、暂停、重置与资源清理", async ({
   page,
   baseURL,

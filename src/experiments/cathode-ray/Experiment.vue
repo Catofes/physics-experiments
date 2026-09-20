@@ -52,7 +52,7 @@ onMounted(() => {
     monitor = createMonitor(monitorCanvas.value);
     scene = new ScopeScene(mount.value, state, (value) => {
       sample.value = value;
-      monitor.push(value);
+      monitor.push(value, state);
     });
   } catch {
     error.value = "3D 演示加载失败，请确认浏览器支持 WebGL 2 并开启硬件加速。";
@@ -112,7 +112,7 @@ onUnmounted(() => {
           label="信号类型"
         /><RangeControl
           v-model="state.yDc"
-          label="直流电压"
+          label="直流偏置"
           :min="-40"
           :max="40"
           :step="0.5"

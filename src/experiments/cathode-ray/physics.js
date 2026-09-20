@@ -158,7 +158,7 @@ const DEFAULT_STATE = {
   sweepAmp: 24,
   sweepFreq: 0.5,
   sweepPhase: 0,
-  flyback: 0.08,
+  flyback: 0,
   persistence: 0.82,
 };
 

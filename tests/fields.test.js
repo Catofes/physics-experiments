@@ -43,8 +43,7 @@ test("静电场七种场景可解，导体净电荷与腔内感应电荷约束�
           (a, q, i) => a + (s.boundaries[i].role === "inner" ? q : 0),
           0,
         );
-        // Reference 2D discretization gives about 6% error for this cavity.
-        assert.ok(Math.abs(inner + sign) < 0.08);
+        assert.ok(Math.abs(inner + sign) < 1e-10);
       }
       if (scene === "shield")
         assert.ok(
@@ -52,6 +51,47 @@ test("静电场七种场景可解，导体净电荷与腔内感应电荷约束�
             (q, i) => s.boundaries[i].role !== "inner" || q === 0,
           ),
         );
+    }
+  }
+});
+test("移动腔内电荷不改变腔外电势、电场及外表面电荷", () => {
+  for (const [width, height] of [[1120, 700], [700, 1120]]) {
+    for (const chargeSign of [-1, 1]) {
+      for (const chargeMagnitude of [0.4, 1, 1.8]) {
+        const m = createElectrostaticModel({ chargeSign, chargeMagnitude }, width, height);
+        const q = chargeSign * chargeMagnitude;
+        let reference;
+        for (const charge of [
+          { x: 0.56, y: 0.5 },
+          { x: 0.48, y: 0.5 },
+          m.fromPhys({ x: 0.59, y: 0.5 * height / width + 0.075 }),
+        ]) {
+          m.state.charge = charge;
+          const solution = m.getBemSolution();
+          const exterior = [];
+          for (const r of [0.24, 0.25, 0.4, 0.6]) {
+            for (const angle of [0, 0.7, 2, 4]) {
+              const point = m.fromPhys({
+                x: 0.56 + r * Math.cos(angle),
+                y: 0.5 * height / width + r * Math.sin(angle),
+              });
+              // Keep boundary roundoff out of the region classification.
+              if (!m.isInCavityExterior(point, solution)) continue;
+              const potential = m.potentialAt(point, solution);
+              const field = m.fieldAt(point, solution);
+              assert.ok(Math.abs(potential + q * Math.log(r)) < 1e-10);
+              assert.ok(Math.abs(field.x - q * Math.cos(angle) / r) < 1e-10);
+              assert.ok(Math.abs(field.y - q * Math.sin(angle) / r) < 1e-10);
+              exterior.push(potential, field);
+            }
+          }
+          const outer = solution.charges.filter((_, i) => solution.boundaries[i].role === "outer");
+          assert.ok(outer.every((value) => Math.abs(value - q / outer.length) < 1e-12));
+          const result = { exterior, outer };
+          if (reference) assert.deepEqual(result, reference);
+          reference = result;
+        }
+      }
     }
   }
 });

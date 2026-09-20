@@ -95,5 +95,16 @@ test("关闭扫描与直流模式不受交流幅值影响，回扫期间消隐",
   assert.equal(dc.uy, 7);
   assert.equal(dc.ux, 0);
   assert.equal(dc.blank, false);
-  assert.equal(sampleVoltages(DEFAULT_STATE, 1.95).blank, true);
+  assert.equal(sampleVoltages({ ...DEFAULT_STATE, flyback: 0.08 }, 1.95).blank, true);
+});
+
+test("默认扫描为零回扫时间的理想锯齿波", () => {
+  assert.equal(DEFAULT_STATE.flyback, 0);
+  const period = 1 / DEFAULT_STATE.sweepFreq;
+  const before = sampleVoltages(DEFAULT_STATE, period - 1e-8);
+  const reset = sampleVoltages(DEFAULT_STATE, period);
+  assert.ok(Math.abs(before.ux - DEFAULT_STATE.sweepAmp) < 1e-6);
+  assert.equal(reset.ux, -DEFAULT_STATE.sweepAmp);
+  assert.equal(before.blank, false);
+  assert.equal(reset.blank, false);
 });

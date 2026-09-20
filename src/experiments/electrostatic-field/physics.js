@@ -540,11 +540,19 @@ export function createElectrostaticModel(
       const outerIndices = boundaries
         .map((boundary, index) => (boundary.role === "outer" ? index : -1))
         .filter((index) => index >= 0);
-      const outerMean =
-        outerIndices.reduce((sum, index) => sum + corrected[index], 0) /
-        outerIndices.length;
+      const outerMean = signedCharge() / outerIndices.length;
       outerIndices.forEach((index) => {
         corrected[index] = outerMean;
+      });
+      const innerTotal = boundaries.reduce(
+        (sum, boundary, index) =>
+          sum + (boundary.role === "inner" ? corrected[index] : 0),
+        0,
+      );
+      boundaries.forEach((boundary, index) => {
+        if (boundary.role === "inner")
+          corrected[index] =
+            innerTotal === 0 ? 0 : (corrected[index] * -signedCharge()) / innerTotal;
       });
     }
     return corrected;
@@ -670,6 +678,16 @@ export function createElectrostaticModel(
   }
 
   function fieldAt(point, solution) {
+    if (isInCavityExterior(point, solution)) {
+      const conductor = solution.geometry.conductors[0];
+      const p = toPhys(point);
+      const center = toPhys({ x: conductor.cx, y: conductor.cy });
+      const dx = p.x - center.x;
+      const dy = p.y - center.y;
+      const q = solution.sources.reduce((sum, source) => sum + source.q, 0);
+      const r2 = dx * dx + dy * dy;
+      return { x: (q * dx) / r2, y: (q * dy) / r2 };
+    }
     const p = toPhys(point);
     let ex = 0;
     let ey = 0;
@@ -689,11 +707,27 @@ export function createElectrostaticModel(
   }
 
   function potentialAt(point, solution) {
+    if (isInCavityExterior(point, solution)) {
+      // Match the model's 2D logarithmic Green function. The neutral shell's
+      // exterior depends only on enclosed charge, never its cavity position.
+      const conductor = solution.geometry.conductors[0];
+      const center = { x: conductor.cx, y: conductor.cy };
+      const q = solution.sources.reduce((sum, source) => sum + source.q, 0);
+      return -q * Math.log(physDistance(point, center));
+    }
     let value = sourcePotential(point, solution.sources);
     solution.boundaries.forEach((boundary, index) => {
       value += solution.charges[index] * green(point, boundary);
     });
     return value;
+  }
+
+  function isInCavityExterior(point, solution) {
+    if (state.scene !== "cavity") return false;
+    const conductor = solution.geometry.conductors[0];
+    return (
+      physDistance(point, { x: conductor.cx, y: conductor.cy }) >= conductor.outer
+    );
   }
 
   function isDrawablePotentialPoint(point, solution) {
@@ -749,6 +783,7 @@ export function createElectrostaticModel(
         "空腔内部可以有电场。",
         "导体材料内部保持 E=0。",
         "内表面异号电荷在靠近处更密。",
+        "电荷量不变时，移动腔内电荷不改变腔外等势面。",
       ];
     }
     if (state.scene === "charged") {
@@ -877,6 +912,7 @@ export function createElectrostaticModel(
     isInRodGroupConductor,
     fieldAt,
     potentialAt,
+    isInCavityExterior,
     isDrawablePotentialPoint,
     isInConductor,
     constrainCharge,

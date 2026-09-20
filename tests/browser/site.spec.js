@@ -98,6 +98,9 @@ test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL 
       .filter({ hasText: "示波管" })
       .click();
     await expect(page.locator(".scope-scene canvas")).toBeVisible();
+    await expect(
+      page.getByRole("slider", { name: "回扫消隐占比", exact: true }),
+    ).toHaveValue("0");
     await page.getByRole("button", { name: "暂停演示", exact: true }).click();
     const frozen = await page.locator(".voltage-readings").innerText();
     await page.waitForTimeout(150);
@@ -108,6 +111,7 @@ test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL 
     await expect(
       page.getByRole("slider", { name: "交流幅值", exact: true }),
     ).toBeDisabled();
+    await page.getByRole("slider", { name: "回扫消隐占比", exact: true }).fill("8");
     await page.getByRole("checkbox", { name: "开启扫描" }).uncheck();
     await expect(
       page.getByRole("slider", { name: "扫描幅值", exact: true }),
@@ -115,6 +119,9 @@ test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL 
     await page.getByRole("button", { name: "侧视", exact: true }).click();
     await page.getByRole("button", { name: "清除余晖", exact: true }).click();
     await page.getByRole("button", { name: "重置实验", exact: true }).click();
+    await expect(
+      page.getByRole("slider", { name: "回扫消隐占比", exact: true }),
+    ).toHaveValue("0");
     await expect(
       page.getByRole("checkbox", { name: "开启扫描" }),
     ).toBeChecked();
