@@ -59,7 +59,9 @@ function sampleVoltages(state, t) {
         state.yAmp;
   const uy = state.yDc + ac;
   const sweep = state.sweepOn
-    ? sawtooth(
+    ? state.xSignal === "sine"
+      ? { v: state.sweepAmp * Math.sin(TWO_PI * state.sweepFreq * t + state.sweepPhase * Math.PI / 180), blank: false }
+      : sawtooth(
         t,
         state.sweepFreq,
         state.sweepAmp,
@@ -155,6 +157,7 @@ const DEFAULT_STATE = {
   yFreq: 0.5,
   yPhase: 0,
   sweepOn: true,
+  xSignal: "sawtooth",
   sweepAmp: 24,
   sweepFreq: 0.5,
   sweepPhase: 0,
@@ -176,7 +179,7 @@ function sampleScreenTrace(state, start, end) {
     const cycle = Math.floor(t * state.sweepFreq + state.sweepPhase / 360);
     const squareHalf = Math.floor(t * state.yFreq * 2 + state.yPhase / 180);
     const connect = !!previous && !previous.blank && !sample.blank
-      && (!state.sweepOn || cycle === previous.cycle)
+      && (!state.sweepOn || state.xSignal === "sine" || cycle === previous.cycle)
       && (state.ySignal !== "square" || squareHalf === previous.squareHalf);
     points.push({ ...screenSpot(sample.uy, sample.ux), blank: sample.blank, connect });
     previous = { ...sample, cycle, squareHalf };
