@@ -68,6 +68,15 @@ test("宽屏保留超过十秒的历史，清空及销毁释放监视器", (t) =
   assert.equal(disconnected(), true);
 });
 
+test("1000 Hz 电压图使用毫秒窗口，不会因逐帧采样而呈现直流假象", (t) => {
+  const { monitor, trace } = setup(t, 600);
+  const state = { ...DEFAULT_STATE, sweepFreq: 1000, yFreq: 1000 };
+  monitor.push(sampleVoltages(state, 1), state);
+  const points = trace().flat();
+  assert.ok(points.length > 1000);
+  assert.ok(Math.max(...points.map(p => p.y)) - Math.min(...points.map(p => p.y)) > 10);
+});
+
 test("理想锯齿波在准确的周期交界处垂直下降，支持初相及非零回扫", (t) => {
   const { monitor, trace } = setup(t, 600);
   for (const sweepPhase of [0, 90]) {

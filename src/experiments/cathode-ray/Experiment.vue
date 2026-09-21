@@ -32,6 +32,15 @@ function setView(value) {
   view.value = value;
   scene?.setView(value);
 }
+function demonstrate(frequency, sweepOn = false) {
+  Object.assign(state, DEFAULT_STATE, {
+    yFreq: frequency, sweepFreq: frequency, sweepOn, persistence: 0.45,
+  });
+  scene?.reset({ ...state });
+  monitor?.clear();
+  running.value = true;
+  setView("front");
+}
 function pause() {
   running.value = false;
   scene?.setPaused(true);
@@ -96,6 +105,13 @@ onUnmounted(() => {
     /></template>
     <template #controls>
       <section class="control-section">
+        <h2>从光点到亮线</h2>
+        <button class="lab-button wide" @click="demonstrate(0.5)">低频光点 · 0.5 Hz</button>
+        <button class="lab-button wide" @click="demonstrate(100)">高频成线 · 100 Hz</button>
+        <button class="lab-button wide" @click="demonstrate(100, true)">高频扫描波形 · 100 Hz</button>
+        <p class="control-note">先观察低频光点上下移动，再逐渐提高信号频率。快速重复运动与荧光屏余晖让轨迹看起来成为连续亮线；开启 X 扫描可展开波形。频率滑块按倍数变化，范围为 0.1–1000 Hz。</p>
+      </section>
+      <section class="control-section">
         <h2>观察视角</h2>
         <ChoiceControl
           :model-value="view"
@@ -131,7 +147,8 @@ onUnmounted(() => {
           v-model="state.yFreq"
           label="信号频率"
           :min="0.1"
-          :max="2"
+          :max="1000"
+          logarithmic
           :step="0.05"
           :digits="2"
           unit=" Hz"
@@ -164,7 +181,8 @@ onUnmounted(() => {
           v-model="state.sweepFreq"
           label="扫描频率"
           :min="0.1"
-          :max="2"
+          :max="1000"
+          logarithmic
           :step="0.05"
           :digits="2"
           unit=" Hz"

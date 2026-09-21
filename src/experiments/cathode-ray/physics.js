@@ -162,4 +162,26 @@ const DEFAULT_STATE = {
   persistence: 0.82,
 };
 
-export { GEO, DEFAULT_STATE, sampleVoltages, computeBeam, screenSpot };
+// Integrate the illuminated path between display frames, including frequencies
+// above the display refresh rate. Never connect across a sweep reset or blanking.
+function sampleScreenTrace(state, start, end) {
+  const frequency = Math.max(state.ySignal === "dc" ? 0 : state.yFreq,
+    state.sweepOn ? state.sweepFreq : 0);
+  const count = Math.max(1, Math.ceil((end - start) * Math.max(240, frequency * 256)));
+  const points = [];
+  let previous;
+  for (let i = 0; i <= count; i++) {
+    const t = start + (end - start) * i / count;
+    const sample = sampleVoltages(state, t);
+    const cycle = Math.floor(t * state.sweepFreq + state.sweepPhase / 360);
+    const squareHalf = Math.floor(t * state.yFreq * 2 + state.yPhase / 180);
+    const connect = !!previous && !previous.blank && !sample.blank
+      && (!state.sweepOn || cycle === previous.cycle)
+      && (state.ySignal !== "square" || squareHalf === previous.squareHalf);
+    points.push({ ...screenSpot(sample.uy, sample.ux), blank: sample.blank, connect });
+    previous = { ...sample, cycle, squareHalf };
+  }
+  return points;
+}
+
+export { GEO, DEFAULT_STATE, sampleVoltages, computeBeam, screenSpot, sampleScreenTrace };

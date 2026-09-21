@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   modelValue: Number,
   label: String,
   min: Number,
@@ -8,8 +8,15 @@ defineProps({
   unit: { type: String, default: "" },
   digits: { type: Number, default: 0 },
   disabled: Boolean,
+  logarithmic: Boolean,
 });
-defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue"]);
+function input(event) {
+  const value = Number(event.target.value);
+  emit("update:modelValue", props.logarithmic
+    ? Number((props.min * (props.max / props.min) ** (value / 1000)).toPrecision(3))
+    : value);
+}
 </script>
 <template>
   <label class="range-control" :class="{ disabled }"
@@ -19,11 +26,12 @@ defineEmits(["update:modelValue"]);
     ><input
       type="range"
       :aria-label="label"
-      :min="min"
-      :max="max"
-      :step="step"
-      :value="modelValue"
+      :min="logarithmic ? 0 : min"
+      :max="logarithmic ? 1000 : max"
+      :step="logarithmic ? 1 : step"
+      :value="logarithmic ? 1000 * Math.log(modelValue / min) / Math.log(max / min) : modelValue"
+      :aria-valuetext="`${modelValue.toFixed(digits)}${unit}`"
       :disabled="disabled"
-      @input="$emit('update:modelValue', Number($event.target.value))"
+      @input="input"
   /></label>
 </template>
