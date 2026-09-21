@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { GEO, sampleVoltages, computeBeam, screenSpot } from "./physics.js";
+import { GEO, sampleVoltages, computeBeam, screenSpot, sampleScreenTrace } from "./physics.js";
 
 function makeLabelTexture(text, opts = {}) {
   const { color = "#e6edf6", accent = "#38e1ff", sub } = opts;
@@ -72,7 +72,7 @@ const VIEWS = {
     target: new THREE.Vector3(0.6, 0, 0),
   },
   front: {
-    pos: new THREE.Vector3(GEO.screenX + 3.4, 0.15, 0.01),
+    pos: new THREE.Vector3(GEO.screenX + 5.8, 0, 0.01),
     target: new THREE.Vector3(GEO.screenX, 0, 0),
   },
   side: {
@@ -197,9 +197,11 @@ export class ScopeScene {
   }
   updateState(patch) {
     Object.assign(this.state, patch);
+    this.clearRequested = true;
   }
   setView(name) {
     const v = VIEWS[name];
+    for (const label of this.labels) label.visible = name !== "front";
     this.viewTransition = {
       fromPos: this.camera.position.clone(),
       toPos: v.pos.clone(),
@@ -535,10 +537,12 @@ export class ScopeScene {
     this.scene.add(this.electrons);
   }
   buildLabels() {
+    this.labels = [];
     const add = (text, pos, opts = {}) => {
       const s = makeLabelSprite(text, opts);
       s.position.set(...pos);
       this.scene.add(s);
+      this.labels.push(s);
     };
     add("电子枪", [-4.9, 1.5, 0.9], {
       accent: "#ff8a3d",
@@ -689,10 +693,38 @@ export class ScopeScene {
       this.clearRequested = false;
     }
     const fadeAlpha = 0.32 * Math.pow(1 - this.state.persistence, 1.6) + 0.008;
-    ctx.fillStyle = `rgba(7, 18, 12, ${Math.min(fadeAlpha * dt * 60, 1)})`;
+    ctx.fillStyle = `rgba(7, 18, 12, ${1 - Math.pow(1 - fadeAlpha, dt * 60)})`;
     ctx.fillRect(0, 0, size, size);
     this.drawGraticule(ctx, size);
-    if (!blank) {
+    const c = size / 2;
+    const pxPerUnit = size / (2 * GEO.screenR);
+    if (dt > 0) {
+      const trace = sampleScreenTrace(this.state, this.simTime - dt, this.simTime);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(c, c, c, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.beginPath();
+      for (const point of trace) {
+        const x = c + point.sx * pxPerUnit, y = c - point.y * pxPerUnit;
+        if (point.connect) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+      }
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "rgba(74, 222, 128, 0.22)";
+      ctx.lineWidth = 12;
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(160, 255, 190, 0.9)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    }
+    const frequency = Math.max(this.state.ySignal === "dc" || this.state.yAmp === 0 ? 0 : this.state.yFreq,
+      this.state.sweepOn ? this.state.sweepFreq : 0);
+    // A fast beam is integrated over the frame; a single bright endpoint would
+    // misleadingly look stationary when its frequency matches the frame rate.
+    if (!blank && frequency < 20) {
       const c = size / 2;
       const pxPerUnit = size / (2 * GEO.screenR);
       const px = c + spotSx * pxPerUnit;
