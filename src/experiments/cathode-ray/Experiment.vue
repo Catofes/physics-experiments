@@ -3,16 +3,19 @@ import { onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import ExperimentLayout from "../../components/ExperimentLayout.vue";
 import RangeControl from "../../components/RangeControl.vue";
 import ChoiceControl from "../../components/ChoiceControl.vue";
-import { DEFAULT_STATE } from "./physics.js";
+import { DEFAULT_STATE, GEO } from "./physics.js";
 import { ScopeScene } from "./scene.js";
 import { createMonitor } from "./monitor.js";
-defineProps({ experiment: Object });
+const props = defineProps({ experiment: Object, lissajous: Boolean });
+const initialState = props.lissajous
+  ? { ...DEFAULT_STATE, xSignal: "sine", sweepAmp: 24, yAmp: 24 * GEO.gainX / GEO.gainY, yPhase: 90, yFreq: 1, sweepFreq: 1, persistence: 0.95 }
+  : { ...DEFAULT_STATE };
 const mount = ref(),
   monitorCanvas = ref(),
   running = ref(true),
   error = ref(""),
   view = ref("perspective");
-const state = reactive({ ...DEFAULT_STATE }),
+const state = reactive({ ...initialState }),
   sample = ref({ ux: 0, uy: 0 });
 let scene, monitor;
 const views = [
@@ -45,15 +48,23 @@ function pause() {
   running.value = false;
   scene?.setPaused(true);
 }
+function figure(x, y, phase, fast = false) {
+  Object.assign(state, initialState, { sweepFreq: x * (fast ? 50 : 1), yFreq: y * (fast ? 50 : 1), yPhase: phase });
+  scene?.reset({ ...state });
+  monitor?.clear();
+  running.value = true;
+  setView("front");
+}
 function toggle() {
   running.value = !running.value;
   scene?.setPaused(!running.value);
 }
 function reset() {
-  Object.assign(state, DEFAULT_STATE);
+  Object.assign(state, initialState);
   view.value = "perspective";
   monitor?.clear();
-  scene?.reset(DEFAULT_STATE);
+  scene?.reset({ ...initialState });
+  if (props.lissajous) setView("front");
   running.value = true;
 }
 onMounted(() => {
@@ -63,6 +74,7 @@ onMounted(() => {
       sample.value = value;
       monitor.push(value, state);
     });
+    if (props.lissajous) setView("front");
   } catch {
     error.value = "3D 演示加载失败，请确认浏览器支持 WebGL 2 并开启硬件加速。";
     running.value = false;
@@ -104,7 +116,18 @@ onUnmounted(() => {
         aria-label="扫描电压与偏转电压随时间变化"
     /></template>
     <template #controls>
-      <section class="control-section">
+      <section v-if="lissajous" class="control-section">
+        <h2>李萨如图形 · 双正弦电压</h2>
+        <button class="lab-button wide" @click="figure(1, 1, 0)">直线 · 1:1 · 同相</button>
+        <button class="lab-button wide" @click="figure(1, 1, 90)">圆 · 1:1 · 相差 90°</button>
+        <button class="lab-button wide" @click="figure(1, 1, 45)">椭圆 · 1:1 · 相差 45°</button>
+        <button class="lab-button wide" @click="figure(1, 2, 0)">8 字形 · X:Y = 1:2</button>
+        <button class="lab-button wide" @click="figure(2, 3, 0)">多瓣曲线 · X:Y = 2:3</button>
+        <button class="lab-button wide" @click="figure(2, 3, 0, true)">高频成线 · 100:150 Hz</button>
+        <p class="control-note">X、Y 均为正弦电压。低频观察光点描线，高频观察稳定图形。频率比决定形状；同频时，相位差决定直线或椭圆。圆形预设已按两方向偏转灵敏度校正幅值。</p>
+        <p class="control-note" aria-live="polite">频率比 X:Y = {{ state.sweepFreq.toFixed(2) }}:{{ state.yFreq.toFixed(2) }}；初相差 Y−X = {{ ((state.yPhase - state.sweepPhase + 360) % 360) }}°</p>
+      </section>
+      <section v-else class="control-section">
         <h2>从光点到亮线</h2>
         <button class="lab-button wide" @click="demonstrate(0.5)">低频光点 · 0.5 Hz</button>
         <button class="lab-button wide" @click="demonstrate(100)">高频成线 · 100 Hz</button>
@@ -123,6 +146,7 @@ onUnmounted(() => {
       <section class="control-section">
         <h2>Y 偏转电压</h2>
         <ChoiceControl
+          v-if="!lissajous"
           v-model="state.ySignal"
           :options="signals"
           label="信号类型"
@@ -165,7 +189,7 @@ onUnmounted(() => {
       </section>
       <section class="control-section">
         <div class="control-heading">
-          <h2>X 扫描电压</h2>
+          <h2>{{ lissajous ? 'X 正弦电压' : 'X 扫描电压' }}</h2>
           <label class="toggle-control"
             ><input v-model="state.sweepOn" type="checkbox" />开启扫描</label
           >
@@ -196,6 +220,7 @@ onUnmounted(() => {
           unit="°"
           :disabled="!state.sweepOn"
         /><RangeControl
+          v-if="!lissajous"
           :model-value="state.flyback * 100"
           label="回扫消隐占比"
           :min="0"

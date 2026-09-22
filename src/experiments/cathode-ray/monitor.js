@@ -95,6 +95,7 @@ export function createMonitor(canvas) {
       const nextSweepKey = state
         ? [
             state.sweepOn,
+            state.xSignal,
             state.sweepFreq,
             state.sweepAmp,
             state.sweepPhase,
@@ -105,6 +106,7 @@ export function createMonitor(canvas) {
         previous &&
         !highFrequency &&
         state?.sweepOn &&
+        state.xSignal !== "sine" &&
         state.flyback === 0 &&
         state.sweepFreq > 0 &&
         sweepKey === nextSweepKey

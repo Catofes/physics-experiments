@@ -107,7 +107,7 @@ test("站内电磁场：场景、预测、参数、暂停、重置与资源清�
     };
   });
   await page.goto("/");
-  await expect(page.locator(".experiment-card")).toHaveCount(4);
+  await expect(page.locator(".experiment-card")).toHaveCount(5);
   await page.screenshot({
     path: `/tmp/fields-catalog-${test.info().project.name}.png`,
     fullPage: true,
