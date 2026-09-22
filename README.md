@@ -1,17 +1,17 @@
 # 物理实验室
 
-面向高中物理课堂的 Vue 静态网站。现有「深蹲跳物理模型」「示波管原理」「李萨如图形」「磁场可视化实验室」「静电场可视化实验室」五个站内实验，共用网站导航、演示布局和控件。两个场实验各包含七种场景，静电场默认进入「腔内电荷」。模型来源、整合范围和精度说明见 [电磁场实验来源](docs/SOURCES.md)。
+面向高中物理课堂的 Vue 静态网站。现有「深蹲跳物理模型」「示波管原理」「李萨如图形」「磁场可视化实验室」「静电场可视化实验室」「电阻 24 点」六个站内实验，共用网站导航、演示布局和控件。两个场实验各包含七种场景，静电场默认进入「腔内电荷」。模型来源、整合范围和精度说明见 [电磁场实验来源](docs/SOURCES.md)。
 
 交给其他部门时，从 [编译与交付说明](docs/BUILD.md) 开始；部署方参考 [部署与回退](docs/DEPLOYMENT.md)，维护者参考 [版本与 GitHub 发布](docs/RELEASING.md)。文档目录见 [docs/README.md](docs/README.md)。
 
-当前版本为 **0.4.0**，统一读取 `package.json`。首页页脚和 `/version.json` 可查看构建版本；发布包见 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases)。
+当前版本为 **0.5.0**，统一读取 `package.json`。首页页脚和 `/version.json` 可查看构建版本；发布包见 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases)。
 
 ## 项目组织
 
 - **Vue 负责界面与状态**：目录、分类、搜索、返回、全屏、暂停、重置、参数及读数。
 - **实验模块负责模型和画面**：纯 JavaScript 计算，Canvas / Three.js 绘图，不查询页面控件、不注册全局操作函数。
 - **公共组件负责一致性**：`ExperimentLayout.vue` 提供演示画布、播放工具栏、观察记录、参数区和操作提示；`RangeControl.vue`、`ChoiceControl.vue` 提供统一滑块和选项。
-- **Vue Router 负责导航**：实验地址为 `/experiments/squat-jump`、`/experiments/cathode-ray`、`/experiments/lissajous`、`/experiments/magnetic-field`、`/experiments/electrostatic-field`；浏览器前进、后退和页面返回均在应用内完成，保留目录搜索与分类条件。
+- **Vue Router 负责导航**：实验地址为 `/experiments/squat-jump`、`/experiments/cathode-ray`、`/experiments/lissajous`、`/experiments/magnetic-field`、`/experiments/electrostatic-field`、`/experiments/resistance-24`；浏览器前进、后退和页面返回均在应用内完成，保留目录搜索与分类条件。
 - **生命周期由实验组件管理**：进入时创建绘图实例，退出时取消动画、断开尺寸观察、销毁 Three.js 的材质、纹理、几何体和 WebGL 上下文。暂停示波管时仍可旋转观察。
 - **构建产物仍为纯静态文件**：Vite 构建，Caddy 提供服务，无后端和数据库；Three.js 随资源打包，不使用运行时外部 CDN。打开网站仍需要能够访问部署服务器，示波管和磁场实验需要 WebGL 2，磁场后台计算需要 Web Worker。
 
@@ -37,6 +37,12 @@ npm run preview
 ```
 
 `npm test` 检查目录模块登记、模型轨迹及关键物理关系；`npm run build` 先运行测试，再构建到 `dist/`。预览默认 `http://localhost:4173`。
+
+## 电阻 24 点
+
+入口为 `/experiments/resistance-24`。每题用完给出的 3～4 个电阻，通过串联、并联合并，组成等效电阻为 24 Ω 的电路。选中两个元件或组合后操作，可撤销、重来、切题并查看计算过程、分步提示和参考电路图。
+
+题库包含入门、进阶、挑战各 4 题；所有题目都需要串并联混合，挑战题必须使用嵌套连接。阻值采用精确分数运算。独立完成进度仅保留在当前页面会话，查看过提示或参考解的题目不计入独立完成。题库与计算模型位于 `src/experiments/resistance-24/model.js`，自动测试枚举所有串并联拓扑验证有解及难度约束。
 
 ## Docker 部署与更新
 

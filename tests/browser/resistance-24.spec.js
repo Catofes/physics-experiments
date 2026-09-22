@@ -1,0 +1,54 @@
+import { test, expect } from '@playwright/test';
+
+test('电阻24点：合并、撤销、成功、提示、切题和移动布局', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/');
+  await page.getByRole('searchbox').fill('电阻');
+  await page.locator('.experiment-card').click();
+  const cards = page.locator('.circuit-card');
+  const parallel = page.getByRole('button', { name: '并联 ∥', exact: true });
+  const series = page.getByRole('button', { name: '串联 ＋', exact: true });
+  await expect(cards).toHaveCount(3);
+  await expect(parallel).toBeDisabled();
+  await cards.nth(1).click(); await cards.nth(2).click();
+  await cards.nth(0).click(); // A third selection must not replace the first two.
+  await expect(page.locator('.circuit-card.selected')).toHaveCount(2);
+  await parallel.click();
+  await expect(cards).toHaveCount(2);
+  await page.getByRole('button', { name: '撤销一步', exact: true }).click();
+  await expect(cards).toHaveCount(3);
+  await cards.nth(1).click(); await cards.nth(2).click(); await parallel.click();
+  await cards.nth(0).click(); await cards.nth(1).click(); await series.click();
+  await expect(page.locator('.game-result')).toContainText('连接成功');
+  await expect(page.locator('.progress-note')).toContainText('1 / 12');
+  await expect(page.locator('.circuit-card rect')).toHaveCount(3);
+  await page.getByText('查看当前计算过程', { exact: true }).click();
+  await expect(page.locator('.calculation')).toContainText('24 Ω');
+  await page.screenshot({ path: `test-results/resistance-${test.info().project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: '下一题 →', exact: true }).click();
+  await expect(cards).toHaveCount(3);
+  await expect(page.getByRole('button', { name: '撤销一步', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: '查看完整参考解', exact: true }).click();
+  await expect(page.locator('.answer-box')).toContainText('24 Ω');
+  await page.getByRole('button', { name: '收起参考解', exact: true }).click();
+  await page.getByRole('button', { name: '本题重来', exact: true }).click();
+  await cards.nth(1).click(); await cards.nth(2).click(); await parallel.click();
+  await cards.nth(0).click(); await cards.nth(1).click(); await series.click();
+  await expect(page.locator('.game-result')).toContainText('连接成功');
+  await expect(page.locator('.progress-note')).toContainText('1 / 12'); // Revealing then hiding/resetting is assisted.
+  await page.getByRole('button', { name: '挑战', exact: true }).click();
+  await expect(cards).toHaveCount(4);
+  await page.getByRole('button', { name: '给我一点提示', exact: true }).click();
+  await expect(page.locator('.hint-box li')).toHaveCount(1);
+  await page.getByRole('button', { name: '再提示一步', exact: true }).click();
+  await expect(page.locator('.hint-box li')).toHaveCount(2);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const stage = await page.locator('.lab-stage').boundingBox();
+  const playback = await page.locator('.lab-playback').boundingBox();
+  expect(playback.y).toBeGreaterThanOrEqual(stage.y + stage.height - 1);
+  await page.screenshot({ path: `test-results/resistance-challenge-${test.info().project.name}.png`, fullPage: true });
+  await page.reload();
+  await expect(cards).toHaveCount(3);
+  expect(errors).toEqual([]);
+});

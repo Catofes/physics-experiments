@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280">
+<rect width="600" height="280" fill="#142936"/>
+<g fill="none" stroke="#98d9bf" stroke-width="3"><path d="M55 140H100M160 140H210V95H250M310 95H360V185H310M250 185H210V140M360 140H405"/><rect x="100" y="128" width="60" height="24" rx="3"/><rect x="250" y="83" width="60" height="24" rx="3"/><rect x="250" y="173" width="60" height="24" rx="3"/></g>
+<g fill="#d9eee4" font-family="sans-serif" font-size="19" text-anchor="middle"><text x="130" y="115">12 Ω</text><text x="280" y="69">18 Ω</text><text x="280" y="225">36 Ω</text><text x="492" y="158" font-size="48">24 Ω</text></g><g fill="#98d9bf"><circle cx="55" cy="140" r="5"/><circle cx="405" cy="140" r="5"/></g></svg>

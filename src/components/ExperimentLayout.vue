@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
 defineProps({
   experiment: { type: Object, required: true },
+  controlsTitle: { type: String, default: "实验参数" },
   running: Boolean,
   disabled: Boolean,
 });
@@ -55,30 +56,32 @@ onUnmounted(() => {
       <section class="lab-demonstration" aria-label="实验演示">
         <div class="lab-stage"><slot name="stage" /></div>
         <div class="lab-playback">
-          <div class="playback-buttons">
-            <button
-              class="lab-button primary"
-              :disabled="disabled"
-              @click="emit('toggle')"
-            >
-              {{ running ? "暂停演示" : "开始 / 继续" }}</button
-            ><button
-              class="lab-button"
-              :disabled="disabled"
-              @click="emit('reset')"
-            >
-              重置实验
-            </button>
-          </div>
-          <span class="playback-state" role="status">{{
-            disabled ? "无法加载" : running ? "正在演示" : "已暂停"
-          }}</span>
+          <slot name="playback">
+            <div class="playback-buttons">
+              <button
+                class="lab-button primary"
+                :disabled="disabled"
+                @click="emit('toggle')"
+              >
+                {{ running ? "暂停演示" : "开始 / 继续" }}</button
+              ><button
+                class="lab-button"
+                :disabled="disabled"
+                @click="emit('reset')"
+              >
+                重置实验
+              </button>
+            </div>
+            <span class="playback-state" role="status">{{
+              disabled ? "无法加载" : running ? "正在演示" : "已暂停"
+            }}</span>
+          </slot>
         </div>
         <div class="lab-observation"><slot name="observation" /></div>
       </section>
-      <aside class="lab-controls" aria-label="实验参数">
+      <aside class="lab-controls" :aria-label="controlsTitle">
         <div class="controls-heading">
-          <p class="eyebrow">实验参数</p>
+          <p class="eyebrow">{{ controlsTitle }}</p>
           <p>{{ experiment.description }}</p>
         </div>
         <fieldset class="lab-fields" :disabled="disabled">
