@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280">
+<rect width="600" height="280" fill="#142936"/>
+<g stroke="#8caaa6" stroke-width="4" fill="none" stroke-linejoin="round"><path d="M75 112H155M405 112H515V210H75V169"/><path d="M75 112V133M75 169V210"/><path d="M305 72H445V112"/></g>
+<g stroke="#e9eee6" stroke-width="3"><path d="M56 136H94M63 150H87M56 165H94"/></g>
+<path d="M155 112H405" stroke="#3b5155" stroke-width="29" stroke-linecap="round"/>
+<path d="M155 112H405" stroke="#f3c47a" stroke-width="7" stroke-dasharray="9 7"/>
+<path d="M305 112V75M293 87L305 75 317 87" stroke="#8ce0c4" stroke-width="4" fill="none"/>
+<rect x="499" y="112" width="32" height="58" rx="3" fill="#193b43" stroke="#f3c47a" stroke-width="3"/>
+<g fill="#e2f0e9" font-family="sans-serif" font-size="18"><text x="145" y="155">A</text><text x="295" y="153">P</text><text x="397" y="155">B</text><text x="434" y="47" fill="#8ce0c4">分压 · 限流</text></g>
+</svg>

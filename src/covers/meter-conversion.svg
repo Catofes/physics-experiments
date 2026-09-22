@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280">
+  <rect width="600" height="280" fill="#142936"/>
+  <g fill="none" stroke="#98d9bf" stroke-width="3" stroke-linejoin="round">
+    <path d="M42 187 A108 108 0 0 1 258 187"/>
+    <path d="M42 187h13m-5-41 12 5m12-40 10 10m25-34 5 13m36-21v14m41-6-5 13m34 11-10 10m33 25-13 5m28 36h-13"/>
+    <path d="M326 120V60h79m50 0h87v54m0 52v43h-63m-74 0h-79v-65"/>
+    <circle cx="430" cy="60" r="25"/>
+    <rect x="531" y="114" width="22" height="52"/>
+    <path d="M312 120h28m-22 24h16m71 65v39h18m38 0h18v-39"/>
+    <rect x="423" y="240" width="38" height="16"/>
+    <circle cx="405" cy="209" r="4" fill="#142936"/>
+    <circle cx="479" cy="209" r="4" fill="#142936"/>
+  </g>
+  <path d="M150 187l55-81" stroke="#f3b779" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="150" cy="187" r="7" fill="#f3b779"/>
+  <g fill="#e2f0e9" font-family="sans-serif" text-anchor="middle">
+    <text x="150" y="147" font-size="23">G</text>
+    <text x="150" y="240" font-size="21">A · V · Ω</text>
+    <text x="430" y="67" font-size="20">G</text>
+    <text x="510" y="147" font-size="17">R₀</text>
+    <text x="405" y="192" font-size="16">A</text>
+    <text x="479" y="192" font-size="16">B</text>
+    <text x="442" y="229" font-size="16">Rₓ</text>
+  </g>
+</svg>

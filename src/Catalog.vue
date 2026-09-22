@@ -5,10 +5,7 @@ import experiments from "./experiments.json";
 const version = __APP_VERSION__;
 const route = useRoute(),
   router = useRouter();
-const categories = [
-  "全部",
-  ...new Set(experiments.map((item) => item.category)),
-];
+const categories = ["全部", "力学", "万有引力", "静电场", "电路", "静磁场"];
 const search = computed({
   get: () => (typeof route.query.q === "string" ? route.query.q : ""),
   set: (q) => router.replace({ query: { ...route.query, q: q || undefined } }),

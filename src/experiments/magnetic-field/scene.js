@@ -1,3 +1,4 @@
+import { arrowDisplayScale, collectArrowSpecs } from "./arrows.js";
 import { ComputeClient, layerKeys } from "./compute-client.js";
 import {
   PAL,
@@ -21,30 +22,7 @@ export function createMagneticScene(container, initial, onStatus, onSample) {
     _b2 = new THREE.Vector3(),
     _bt = new THREE.Vector3();
 
-  /* ==================== 箭头（稀疏、精巧） ==================== */
-  function collectArrowSpecs(lines, options = {}) {
-    const specs = [];
-    for (const pts of lines) {
-      const n = pts.length;
-      if (n < 8) continue;
-      const defaults = n > 130 ? [0.24, 0.62] : [0.36];
-      const fracs = (options.fractions || defaults).slice(
-        0,
-        options.maxPerLine || 2,
-      );
-      for (const f of fracs) {
-        const i = Math.floor(n * f);
-        const i0 = Math.max(0, i - 1),
-          i1 = Math.min(n - 1, i + 1);
-        const tan = new THREE.Vector3().subVectors(pts[i1], pts[i0]);
-        if (tan.lengthSq() < 1e-10) continue;
-        const scale = options.scaleAt ? options.scaleAt(pts[i]) : 1;
-        specs.push({ pos: pts[i], dir: tan.normalize(), scale });
-      }
-    }
-    return specs;
-  }
-
+  /* ==================== 磁感线方向箭头 ==================== */
   function makeArrowMesh(specs, color, scale = 1) {
     if (!specs.length) return null;
     const geom = new THREE.ConeGeometry(0.06 * scale, 0.18 * scale, 10);
@@ -52,14 +30,19 @@ export function createMagneticScene(container, initial, onStatus, onSample) {
     const mesh = new THREE.InstancedMesh(geom, mat, specs.length);
     const dummy = new THREE.Object3D();
     const up = new THREE.Vector3(0, 1, 0);
-    specs.forEach((s, i) => {
-      dummy.position.copy(s.pos);
-      dummy.quaternion.setFromUnitVectors(up, s.dir);
-      dummy.scale.setScalar(s.scale || 1);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    });
-    mesh.instanceMatrix.needsUpdate = true;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    // Instance sizes change with the view; do not use a stale bounding sphere.
+    mesh.frustumCulled = false;
+    mesh.userData.updateArrowScale = () => {
+      specs.forEach((s, i) => {
+        dummy.position.copy(s.pos);
+        dummy.quaternion.setFromUnitVectors(up, s.dir);
+        dummy.scale.setScalar(arrowDisplayScale(s, camera, container.clientHeight, scale));
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+    };
     return mesh;
   }
 
@@ -67,8 +50,6 @@ export function createMagneticScene(container, initial, onStatus, onSample) {
     if (sceneId !== "loop") return {};
     const radius = params.radius;
     return {
-      maxPerLine: 1,
-      fractions: [0.34],
       scaleAt: (point) => {
         const distance = Math.hypot(
           Math.hypot(point.x, point.z) - radius,
@@ -834,7 +815,15 @@ export function createMagneticScene(container, initial, onStatus, onSample) {
     render();
   }
   function render() {
-    if (!disposed) renderer.render(scene, camera);
+    if (disposed) return;
+    camera.updateMatrixWorld();
+    for (const group of [arrowGroup, sectionLineGroup]) {
+      if (!group.visible) continue;
+      for (const object of group.children) {
+        if (object.visible) object.userData.updateArrowScale?.();
+      }
+    }
+    renderer.render(scene, camera);
   }
   function animate() {
     if (disposed || paused) return;

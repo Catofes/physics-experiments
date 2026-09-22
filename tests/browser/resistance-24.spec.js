@@ -4,7 +4,7 @@ test('电阻24点：合并、撤销、成功、提示、切题和移动布局', 
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
-  await page.getByRole('searchbox').fill('电阻');
+  await page.getByRole('searchbox').fill('电阻 24 点');
   await page.locator('.experiment-card').click();
   const cards = page.locator('.circuit-card');
   const parallel = page.getByRole('button', { name: '并联 ∥', exact: true });
@@ -45,8 +45,10 @@ test('电阻24点：合并、撤销、成功、提示、切题和移动布局', 
   await expect(page.locator('.hint-box li')).toHaveCount(2);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const stage = await page.locator('.lab-stage').boundingBox();
-  const playback = await page.locator('.lab-playback').boundingBox();
-  expect(playback.y).toBeGreaterThanOrEqual(stage.y + stage.height - 1);
+  const actions = await page.getByRole('group', { name: '电路操作' }).boundingBox();
+  expect(actions.y).toBeGreaterThan(stage.y);
+  expect(actions.y + actions.height).toBeLessThanOrEqual(stage.y + stage.height);
+  expect((await series.boundingBox()).height).toBeGreaterThanOrEqual(48);
   await page.screenshot({ path: `test-results/resistance-challenge-${test.info().project.name}.png`, fullPage: true });
   await page.reload();
   await expect(cards).toHaveCount(3);

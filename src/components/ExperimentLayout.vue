@@ -4,6 +4,8 @@ import { useRoute } from "vue-router";
 defineProps({
   experiment: { type: Object, required: true },
   controlsTitle: { type: String, default: "实验参数" },
+  showControls: { type: Boolean, default: true },
+  showPlayback: { type: Boolean, default: true },
   running: Boolean,
   disabled: Boolean,
 });
@@ -52,10 +54,10 @@ onUnmounted(() => {
         {{ isFullscreen ? "退出全屏" : "全屏演示" }}
       </button>
     </header>
-    <main class="lab-layout">
+    <main class="lab-layout" :class="{ 'without-controls': !showControls }">
       <section class="lab-demonstration" aria-label="实验演示">
         <div class="lab-stage"><slot name="stage" /></div>
-        <div class="lab-playback">
+        <div v-if="showPlayback" class="lab-playback">
           <slot name="playback">
             <div class="playback-buttons">
               <button
@@ -79,7 +81,8 @@ onUnmounted(() => {
         </div>
         <div class="lab-observation"><slot name="observation" /></div>
       </section>
-      <aside class="lab-controls" :aria-label="controlsTitle">
+      <aside v-if="showControls" class="lab-controls" :aria-label="controlsTitle">
+        <slot name="controls-top" />
         <div class="controls-heading">
           <p class="eyebrow">{{ controlsTitle }}</p>
           <p>{{ experiment.description }}</p>
@@ -96,3 +99,7 @@ onUnmounted(() => {
     <p v-if="notice" class="lab-notice" role="status">{{ notice }}</p>
   </div>
 </template>
+
+<style scoped>
+.lab-layout.without-controls { grid-template-columns: minmax(0, 1fr); }
+</style>

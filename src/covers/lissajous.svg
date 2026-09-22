@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" fill="none">
+  <defs>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" stroke="#bed7d4" stroke-opacity=".4"/>
+    </pattern>
+    <path id="trace" d="M300 140C366 54 420 54 420 140S366 226 300 140 180 54 180 140 234 226 300 140Z"/>
+  </defs>
+  <path fill="#e6efec" d="M0 0h600v280H0z"/>
+  <rect x="126" y="28" width="348" height="224" rx="16" fill="#dcebe4" stroke="#a1c9ba" stroke-width="1.5"/>
+  <path fill="url(#grid)" d="M140 42h320v196H140z"/>
+  <path d="M154 140h292M300 48v184" stroke="#8fb6a6" stroke-width="1.2"/>
+  <path d="m440 136 6 4-6 4m-144-90 4-6 4 6" stroke="#8fb6a6" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#trace" stroke="#53a87e" stroke-width="10" opacity=".12"/>
+  <use href="#trace" stroke="#328663" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="300" cy="140" r="7" fill="#53a87e" opacity=".18"/>
+  <circle cx="300" cy="140" r="3" fill="#267568"/>
+  <g font-family="Georgia,serif" font-size="17" font-style="italic" fill="#72938b">
+    <text x="447" y="162">x</text><text x="312" y="58">y</text>
+  </g>
+</svg>

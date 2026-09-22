@@ -40,9 +40,9 @@ test("目录、历史导航、暂停及重置", async ({ page }) => {
   await expect(page.locator(".jump-scene canvas")).toBeVisible();
   await page.getByRole("link", { name: "← 实验目录", exact: true }).click();
   await expect(page.getByRole("searchbox")).toHaveValue("动量");
-  await page.getByRole("button", { name: "电磁学", exact: true }).click();
+  await page.getByRole("button", { name: "电路", exact: true }).click();
   await page.getByRole("button", { name: "查看全部实验", exact: true }).click();
-  await expect(page.locator(".experiment-card")).toHaveCount(6);
+  await expect(page.locator(".experiment-card")).toHaveCount(14);
 });
 
 test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL }) => {
