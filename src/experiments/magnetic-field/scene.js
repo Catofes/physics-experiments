@@ -15,6 +15,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import earthSurfaceUrl from "../geosynchronous/assets/earth-surface.jpg";
 
 export function createMagneticScene(container, initial, onStatus, onSample) {
   const _b = new THREE.Vector3(),
@@ -260,13 +261,16 @@ export function createMagneticScene(container, initial, onStatus, onSample) {
       case "earth": {
         const Re = EARTH_R,
           t = (P.tilt * Math.PI) / 180;
+        const surface = new THREE.TextureLoader().load(earthSurfaceUrl);
+        surface.colorSpace = THREE.SRGBColorSpace;
         const earth = new THREE.Mesh(
           new THREE.SphereGeometry(Re, 48, 32),
           new THREE.MeshPhongMaterial({
-            color: PAL.earth,
+            map: surface,
             transparent: true,
-            opacity: 0.42,
+            opacity: 0.28,
             shininess: 18,
+            // 保留球内和背面的磁感线，不让地表遮挡它们。
             depthWrite: false,
           }),
         );
