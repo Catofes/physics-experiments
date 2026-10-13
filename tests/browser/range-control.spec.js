@@ -68,13 +68,18 @@ test.describe("触屏输入", () => {
   test.use({ hasTouch: true });
 
   test("连续轻触数值打开数字按键板", async ({ page }) => {
+    const gestureTime = new Date("2026-01-01T00:00:00Z");
+    await page.clock.install({ time: gestureTime });
     await page.goto("/experiments/cathode-ray");
     const valueButton = page.getByRole("button", { name: /输入信号频率，当前/ });
     await valueButton.scrollIntoViewIfNeeded();
     const bounds = await valueButton.boundingBox();
     const x = bounds.x + bounds.width / 2;
     const y = bounds.y + bounds.height / 2;
+    // 控制两次真实触摸之间的页面时间，避免慢速 CI 指令越过 300 ms 窗口。
+    await page.clock.pauseAt(new Date(gestureTime.getTime() + 60_000));
     await page.touchscreen.tap(x, y);
+    await page.clock.runFor(100);
     await page.touchscreen.tap(x, y);
     await expect(page.getByRole("dialog", { name: "信号频率数字输入" })).toBeVisible();
     await expect(page.getByRole("spinbutton", { name: "输入信号频率" })).toHaveCount(0);
