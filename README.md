@@ -1,9 +1,10 @@
 # 物理实验室
 
-面向高中物理课堂的 Vue 静态网站，共十五个站内实验，共用网站导航、演示布局和控件。按教学内容整理如下：
+面向高中物理课堂的 Vue 静态网站，共十七个站内实验，共用网站导航、演示布局和控件。按教学内容整理如下：
 
 | 分类 | 实验 |
 | --- | --- |
+| 测量 | 游标卡尺、螺旋测微器 |
 | 力学 | 深蹲跳物理模型、竖直圆周运动与分离 |
 | 电路 | 电阻 24 点、滑动变阻器：分压与限流、电表改装 |
 | 静电场 | 示波管原理、李萨如图形、静电场可视化实验室 |
@@ -14,7 +15,7 @@
 
 交给其他部门时，从 [编译与交付说明](docs/BUILD.md) 开始；部署方参考 [部署与回退](docs/DEPLOYMENT.md)，维护者参考 [版本与 GitHub 发布](docs/RELEASING.md)。文档目录见 [docs/README.md](docs/README.md)。
 
-当前版本为 **0.7.0**，统一读取 `package.json`。首页页脚和 `/version.json` 可查看构建版本；发布包见 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases)。
+当前版本为 **0.8.0**，统一读取 `package.json`。首页页脚和 `/version.json` 可查看构建版本；发布包见 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases)。
 
 ## 项目组织
 
@@ -61,6 +62,14 @@ npm run preview
 ```
 
 `npm test` 检查目录模块登记、模型轨迹及关键物理关系；`npm run build` 先运行测试，再构建到 `dist/`。预览默认 `http://localhost:4173`。
+
+## 长度测量
+
+游标卡尺入口为 `/experiments/vernier-caliper`。提供示意图与三维模型，可旋转、缩放、切换正面读数和测量面近景，直接拖动游标尺或用参数区调节。游标尺采用前后压板与上下导槽包住尺身，连接块避让固定量爪根部，下部前后压板的前缘与活动外测量爪齐平，正面的主尺刻度窗口完整露出。游标刻度带采用斜面，上缘与主尺刻度面同层，下缘连接前压板；三维正面读数采用正投影，避免厚度造成透视错位。两种视图共用量爪轮廓与测量状态：卡口侧测量边连续，刀口在厚度方向从爪身向测量刃磨薄，内测爪前后错层，活动爪根部接到前压板，不把表面反光画成凹槽或凸起；主尺、游标尺零线保留相同的安装偏移，量爪闭合时零线对齐；内外测量面的间距、游标尺位移和深度杆伸出量一致。部件标注对应课本图 11.3-1 的 A 主尺、B 游标尺、C 外测量爪、D 内测量爪、E 尺身、F 紧固螺钉。下方只保留一张刻度放大图，主尺只在 0、10、20 等整十毫米处标数字。可切换 10、20、50 分度，对应 0.1、0.05、0.02 mm；统一采用课本短游标结构，分别占 9、19、49 mm，20 分度每格 0.95 mm，游标数字直接标线号。支持自动对齐演示、轻合量爪和隐藏答案练习。
+
+螺旋测微器入口为 `/experiments/micrometer`。同样提供示意图和三维模型；旋钮、可动刻度转动角度与螺杆位移按螺距联动。固定刻度零线位于安装座右侧的套筒上，示意图与三维图采用相同零点和位移比例。部件标注对应课本图 11.3-4 的 A 测砧、B 固定刻度、C 尺架、D 旋钮、D′ 微调旋钮、E 可动刻度、F 测微螺杆、G 锁紧装置。局部放大显示整数与半毫米刻度、基准线和圆周刻度，提供半毫米前后、整毫米前和估读预设。螺距 0.5 mm，一圈 50 格，最小分度 0.01 mm；最后一位估读到 0.001 mm，读数练习允许 ±0.002 mm 的估读差异。两种仪器均为无零误差的外尺寸教学模型，不模拟测力、形变或校准误差。三维视图需要 WebGL；加载失败时可切回示意图。
+
+结构与读数依据：用户提供的人教版《物理 必修第三册》第十一章第 3 节，图 11.3-1～11.3-5（PDF 第 67～69 页，书内页码 62～64）；外形参考维基百科的[游标卡尺示意图与照片](https://zh.wikipedia.org/wiki/游标卡尺)、[测微器示意图](https://commons.wikimedia.org/wiki/File:Micrometer.svg)、[Sketchfab 游标卡尺模型](https://sketchfab.com/3d-models/10-3551e0a0834542499b0e4a89e0f6967a)及用户提供的仪器实物照片；几何与操作参考 [Mahesh Kurmi 游标卡尺模型](https://maheshkurmi.github.io/experiments/vernier_calliper.html)。本站使用自绘 SVG 与 Three.js 模型，参考网站的图像与代码未打包引入。游标结构差异及视差参考[三丰技术指南](https://www.mitutoyo.com/webfoo/wp-content/uploads/E11003-Quick-Guide.pdf)和[三丰游标卡尺读数说明](https://www.mitutoyo.com/metrology-insights/mitutoyo-calipers-digital-dial-and-vernier-calipers-precision-measurement-tools-for-manufacturing/)；斜面刻度参考[三丰 2017–2019 产品目录第 180 页](https://rgcengineering.co.za/wp-content/uploads/2020/12/2017-2019-Mitutoyo-catalogue.pdf#page=180)。19 mm 与 39 mm 型均可提供 0.05 mm 分度，本教学模型采用前者。
 
 ## 竖直圆周运动与分离
 

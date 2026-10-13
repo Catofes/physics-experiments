@@ -1,0 +1,38 @@
+.measurement-lab { height: auto; min-height: 100dvh; }
+.measurement-lab .lab-layout { align-items: start; }
+.measurement-lab .lab-controls { overflow: visible; }
+.measurement-lab .lab-stage { background: #f7faf8; border-color: #d5e2db; flex: initial; height: auto; min-height: 0; }
+.measurement-lab .scene-heading { padding: 18px 20px 6px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; font-size: 13px; color: #557367; }
+.measurement-lab .scene-heading strong { color: #226b59; }
+.measurement-lab .instrument { width: 100%; display: block; }
+.measurement-lab svg { font-family: inherit; }
+.measurement-lab .scale-panel { background: #fff; margin: 0 18px 18px; border: 1px solid #dbe5df; border-radius: 10px; padding: 14px; }
+.measurement-lab .scale-panel h2 { font-size: 13px; margin: 0 0 8px; color: #466b5c; }
+.measurement-lab .scale-panel svg { width: 100%; display: block; }
+.measurement-lab .scale-panel p, .measurement-lab .instruction { font-size: 12px; line-height: 1.8; color: #627c70; margin: 8px 0 0; }
+.measurement-lab .instruction { padding: 0 20px 16px; }
+.measurement-lab .part-key { margin: 0; padding: 0 20px 16px; font-size: 12px; line-height: 1.9; color: #456859; }
+.measurement-lab .view-choice { margin: 12px 20px; max-width: 330px; }
+.measurement-lab .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.measurement-lab .readings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.measurement-lab .readings span { color: #637e6f; font-size: 12px; }
+.measurement-lab .readings strong { font-size: 18px; }
+.measurement-lab .read-equation { font-size: 16px; color: #266e5a; line-height: 1.8; font-variant-numeric: tabular-nums; margin: 15px 0 0; }
+.measurement-lab .explanation { font-size: 13px; line-height: 1.9; margin: 10px 0 0; }
+.measurement-lab .check { display: flex; gap: 8px; align-items: center; font-size: 13px; margin: 16px 0; }
+.measurement-lab .check input { accent-color: #287e66; }
+.measurement-lab .principle { padding: 16px; background: #edf5ef; border-radius: 8px; font-size: 13px; line-height: 1.9; }
+.measurement-lab .principle p { margin: 8px 0 0; }
+.measurement-lab .presets { display: flex; flex-wrap: wrap; gap: 7px; }
+.measurement-lab .drag-part { cursor: ew-resize; touch-action: none; outline: none; }
+.measurement-lab .drag-part:focus-visible { filter: drop-shadow(0 0 4px #19846c); }
+.measurement-lab .drag-part:focus-visible rect { stroke: #19846c; stroke-width: 3; }
+@media (max-width: 760px) {
+  .measurement-lab .scale-panel { margin: 0 10px 12px; padding: 10px; }
+  .measurement-lab .scene-heading { padding: 14px 12px 4px; }
+  .measurement-lab .readings { gap: 7px; }
+  .measurement-lab .readings strong { font-size: 15px; }
+  .measurement-lab .readings span { font-size: 11px; }
+  .measurement-lab .lab-playback { flex-wrap: wrap; }
+  .measurement-lab .instruction { padding: 0 12px 12px; }
+}
