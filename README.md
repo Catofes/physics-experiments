@@ -138,6 +138,8 @@ docker run -d --name physics-experiments-static --restart unless-stopped \
 
 Pull Request、主分支更新和手动运行 Actions 会编译并验证可下载的静态交付包。推送与项目版本一致的 `vX.Y.Z` 标签时，还会发布 GHCR 双架构镜像，再创建包含交付包和校验码的 GitHub Release。发布不会自动部署到服务器。
 
+桌面和手机浏览器测试在两个独立作业中并行运行，使用同一份交付包分别启动容器；保留完整用例，每个作业内仍使用一个 worker。两套测试全部通过后才发布镜像和 GitHub Release。
+
 工作流见 [.github/workflows/build-release.yml](.github/workflows/build-release.yml)。首次使用需提交并推送项目到 GitHub、启用 Actions；详细步骤见 [版本与 GitHub 发布](docs/RELEASING.md)。
 
 ## 新增实验

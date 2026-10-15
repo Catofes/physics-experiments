@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   check:
-    name: Test, Package And Container Smoke Test
+    name: Test And Package
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -50,48 +50,73 @@ jobs:
         run: npm run package
       - name: Verify source Dockerfile also builds
         run: docker build --build-arg BUILD_REVISION="$BUILD_REVISION" -t physics-experiments:source .
-      - name: Verify archive and start its container
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+      - name: Verify source image ports and archive checksum
         run: |
+          docker image inspect physics-experiments:source | jq -e '.[0].Config.ExposedPorts | keys == ["8080/tcp"]'
           (cd release && sha256sum -c SHA256SUMS)
-          tar -xzf "release/physics-experiments-$VERSION.tar.gz" -C "$RUNNER_TEMP"
-          docker build -t physics-experiments:ci "$RUNNER_TEMP/physics-experiments-$VERSION"
-          for image in physics-experiments:source physics-experiments:ci; do
-            docker image inspect "$image" | jq -e '.[0].Config.ExposedPorts | keys == ["8080/tcp"]'
-          done
-          docker run -d --name physics-ci -p 127.0.0.1:4173:8080 physics-experiments:ci
-          curl --fail --retry 20 --retry-all-errors --retry-delay 1 --max-time 2 http://127.0.0.1:4173/healthz
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Test desktop and mobile in the container
-        env:
-          BASE_URL: http://127.0.0.1:4173
-        run: npm run test:e2e
-      - name: Upload browser failure report
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: browser-failure-report
-          path: |
-            playwright-report/
-            test-results/
-          if-no-files-found: ignore
-          retention-days: 7
-      - name: Upload verified delivery package
+      - name: Upload delivery package for browser tests and publication
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-assets
           path: release/*
           if-no-files-found: error
           retention-days: 14
+
+  browser:
+    name: Test ${{ matrix.project }} In Container
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, mobile]
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-assets
+          path: release
+      - name: Verify archive and start its container
+        run: |
+          (cd release && sha256sum -c SHA256SUMS)
+          tar -xzf "release/physics-experiments-$VERSION.tar.gz" -C "$RUNNER_TEMP"
+          docker build -t physics-experiments:ci "$RUNNER_TEMP/physics-experiments-$VERSION"
+          docker image inspect physics-experiments:ci | jq -e '.[0].Config.ExposedPorts | keys == ["8080/tcp"]'
+          docker run -d --name physics-ci -p 127.0.0.1:4173:8080 physics-experiments:ci
+          curl --fail --retry 20 --retry-all-errors --retry-delay 1 --max-time 2 http://127.0.0.1:4173/healthz
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test browser project in the container
+        env:
+          BASE_URL: http://127.0.0.1:4173
+        run: npm run test:e2e -- --project=${{ matrix.project }}
+      - name: Upload browser failure report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-failure-report-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Stop test container
         if: always()
         run: docker rm -f physics-ci || true
 
   publish:
     name: Publish GHCR And GitHub Release
-    needs: check
+    needs: [check, browser]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 20
