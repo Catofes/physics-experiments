@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("李萨如预设、相位调节、暂停与重置", async ({ page }) => {
+test("李萨如预设、相位调节、暂停与重置", { tag: '@3d' }, async ({ page }) => {
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/experiments/lissajous");

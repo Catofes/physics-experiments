@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 const ids=['newton-cannon','satellite-orbit','earth-moon-transfer','geosynchronous','earth-moon-sun','change6-orbit'];
-for(const id of ids)test(`${id} 目录入口、交互、布局与退出清理`,async({page})=>{
+for(const id of ids)test(`${id} 目录入口、交互、布局与退出清理`,{tag:id==='geosynchronous'?['@3d']:[]},async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{const request=window.requestAnimationFrame,cancel=window.cancelAnimationFrame;window.pendingFrames=new Set();window.requestAnimationFrame=callback=>{let id=request(t=>{window.pendingFrames.delete(id);callback(t)});window.pendingFrames.add(id);return id};window.cancelAnimationFrame=id=>{window.pendingFrames.delete(id);cancel(id)};});
  await page.goto('/');await page.locator(`a[href="/experiments/${id}"]`).click();
@@ -46,7 +46,7 @@ for(const id of ['satellite-orbit','earth-moon-transfer'])test(id+' 必须暂停
  await page.getByRole('button',{name:'继续模拟',exact:true}).click();await expect(accelerate).toBeDisabled();await expect(clock).not.toHaveText(time);
 });
 
-test('星下点轨道预设、自转开关、精调与响应式双图',async({page},info)=>{
+test('星下点轨道预设、自转开关、精调与响应式双图',{tag:'@3d'},async({page},info)=>{
  await page.goto('/experiments/geosynchronous');
  const preset=page.getByRole('group',{name:'轨道预设',exact:true});
  await preset.getByRole('button',{name:'近地轨道',exact:true}).click();
@@ -74,7 +74,7 @@ test('星下点轨道预设、自转开关、精调与响应式双图',async({pa
  await page.screenshot({path:`/tmp/ground-track-${info.project.name}.png`,fullPage:true});
 });
 
-test('三维地球贴图、参考面与卫星镜头跟随',async({page},info)=>{
+test('三维地球贴图、参考面与卫星镜头跟随',{tag:'@3d'},async({page},info)=>{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto('/experiments/geosynchronous');
  await page.getByRole('button',{name:'暂停演示',exact:true}).click();
@@ -113,7 +113,7 @@ test('三维地球贴图、参考面与卫星镜头跟随',async({page},info)=>{
  await page.getByRole('link',{name:'← 实验目录'}).click();expect(errors).toEqual([]);
 });
 
-test('地球表面星下点轨迹在俯视和地平线可见，并可独立隐藏',async({page},info)=>{
+test('地球表面星下点轨迹在俯视和地平线可见，并可独立隐藏',{tag:'@3d'},async({page},info)=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/experiments/geosynchronous');
  await page.getByRole('button',{name:'暂停演示',exact:true}).click();

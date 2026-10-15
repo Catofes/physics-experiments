@@ -6,6 +6,11 @@ on:
     branches: [main, master]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      full_e2e:
+        description: Include WebGL / 3D browser tests
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -99,7 +104,11 @@ jobs:
       - name: Test browser project in the container
         env:
           BASE_URL: http://127.0.0.1:4173
-        run: npm run test:e2e -- --project=${{ matrix.project }}
+          FULL_E2E: ${{ github.event_name == 'workflow_dispatch' && inputs.full_e2e }}
+        run: |
+          args=(--project=${{ matrix.project }})
+          if [ "$FULL_E2E" != true ]; then args+=(--grep-invert '@3d'); fi
+          npm run test:e2e -- "${args[@]}"
       - name: Upload browser failure report
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

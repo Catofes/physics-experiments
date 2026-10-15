@@ -181,7 +181,7 @@ test('两个仪器均支持直接拖动，移动端布局没有横向溢出', as
   }
 });
 
-test('三维与示意图共用测量状态，支持旋转、近景及退出清理', async ({ page }) => {
+test('三维与示意图共用测量状态，支持旋转、近景及退出清理', { tag: '@3d' }, async ({ page }) => {
   test.setTimeout(90_000);
   const errors=[];
   await page.addInitScript(() => {

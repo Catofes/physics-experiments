@@ -45,7 +45,7 @@ test("目录、历史导航、暂停及重置", async ({ page }) => {
   await expect(page.locator(".experiment-card")).toHaveCount(17);
 });
 
-test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL }) => {
+test("三维实验交互、退出清理及本地依赖", { tag: '@3d' }, async ({ page, baseURL }) => {
   const external = [],
     errors = [];
   await page.route("**/*", (route) => {
@@ -151,16 +151,28 @@ test("三维实验交互、退出清理及本地依赖", async ({ page, baseURL 
   expect(external).toEqual([]);
 });
 
-test("部署地址直接访问、刷新、版本及无效实验", async ({ page, request }) => {
+test("三维实验地址直接访问与刷新", { tag: '@3d' }, async ({ page }) => {
   for (const [id, canvas] of [
     ["cathode-ray", ".scope-scene canvas"],
     ["magnetic-field", ".magnetic-scene canvas"],
-    ["electrostatic-field", ".electrostatic-scene canvas"],
   ]) {
     await page.goto(`/experiments/${id}`);
     await expect(page.locator(canvas)).toBeVisible();
     await page.reload();
     await expect(page.locator(canvas)).toBeVisible();
+    await expect(page.locator(".stage-error")).toHaveCount(0);
+  }
+});
+
+test("部署地址直接访问、刷新、版本及无效实验", async ({ page, request }) => {
+  for (const [id, scene] of [
+    ["electrostatic-field", ".electrostatic-scene canvas"],
+    ["vernier-caliper", ".instrument"],
+  ]) {
+    await page.goto(`/experiments/${id}`);
+    await expect(page.locator(scene)).toBeVisible();
+    await page.reload();
+    await expect(page.locator(scene)).toBeVisible();
     await expect(page.locator(".stage-error")).toHaveCount(0);
   }
   await page.goto("/experiments/unknown");

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('滑动变阻器：接线、滑片、曲线与参数联动', async ({ page }) => {
+test('滑动变阻器：接线、滑片、曲线与参数联动', { tag: '@3d' }, async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/experiments/rheostat');

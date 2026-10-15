@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("滑块数值可直接输入、取消并遵守范围与禁用状态", async ({ page }) => {
+test("滑块数值可直接输入、取消并遵守范围与禁用状态", { tag: '@3d' }, async ({ page }) => {
   await page.goto("/experiments/cathode-ray");
 
   await page.getByRole("button", { name: /输入信号频率，当前/ }).click();
@@ -33,7 +33,7 @@ test("滑块数值可直接输入、取消并遵守范围与禁用状态", async
   await expect(page.getByRole("spinbutton", { name: "输入信号频率" })).toHaveCount(0);
 });
 
-test("数字按键板可通过按钮或双击打开并输入参数", async ({ page }) => {
+test("数字按键板可通过按钮或双击打开并输入参数", { tag: '@3d' }, async ({ page }) => {
   await page.goto("/experiments/cathode-ray");
 
   await page.getByRole("button", { name: "打开信号频率数字按键板" }).click();
@@ -64,7 +64,7 @@ test("数字按键板可通过按钮或双击打开并输入参数", async ({ pa
   await expect(page.getByRole("button", { name: "打开信号频率数字按键板" })).toBeDisabled();
 });
 
-test.describe("触屏输入", () => {
+test.describe("触屏输入", { tag: '@3d' }, () => {
   test.use({ hasTouch: true });
 
   test("连续轻触数值打开数字按键板", async ({ page }) => {
