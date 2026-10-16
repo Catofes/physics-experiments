@@ -1,0 +1,145 @@
+import { test, expect } from '@playwright/test';
+
+const url = '/experiments/emf-internal-resistance';
+const collect = page => page.getByRole('button', { name: '一键采集 6 组', exact: true }).click();
+async function setResistance(page, value) {
+  await page.getByRole('button', { name: /^输入电源内阻 r，/ }).press('Enter');
+  const input = page.getByRole('spinbutton', { name: '输入电源内阻 r', exact: true });
+  await input.fill(String(value));
+  await input.press('Enter');
+}
+
+test('电源测量：目录入口、直接调节记录、固定 U-I 坐标和完整截距', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  await page.getByRole('searchbox').fill('电动势');
+  await expect(page.locator('.experiment-card')).toHaveCount(1);
+  await page.locator('.experiment-card').click();
+  await expect(page.getByRole('heading', { name: '测量电源电动势和内阻', exact: true })).toBeVisible();
+  const slider = page.getByRole('slider', { name: '滑动变阻器接入电阻', exact: true });
+  await expect(slider).toHaveValue('20');
+  await expect(page.locator('.emf-circuit')).toHaveAttribute('aria-label', /限流接法.*B 悬空/);
+  await expect(page.getByRole('button', { name: /开关|横 I|横 U|测量区间|看两轴截距/ })).toHaveCount(0);
+  await expect(page.locator('.emf-plot')).toHaveAttribute('aria-label', /横轴电流 I，纵轴电压 U.*显示两轴截距/);
+  await expect(page.locator('.live-readings')).toContainText('0.071');
+  await expect(page.getByRole('button', { name: '记录当前读数' })).toBeEnabled();
+  await page.getByRole('button', { name: '记录当前读数' }).click();
+  await page.getByRole('button', { name: '记录当前读数' }).click();
+  await expect(page.locator('.state-note')).toContainText('这个阻值已经记录');
+  await expect(page.locator('.sample-dot')).toHaveCount(1);
+  await slider.fill('2');
+  await page.getByRole('button', { name: '记录当前读数' }).click();
+  await expect(page.locator('.fit-results')).toContainText('1.500 V');
+  await expect(page.locator('.fit-results')).toContainText('1.000 Ω');
+  // The full fitted line must reach both axes inside the plotting area.
+  const intercepts = await page.locator('.measured-line').evaluate(path => {
+    const box = document.querySelector('#emf-plot-clip rect');
+    const start = path.getPointAtLength(0), end = path.getPointAtLength(path.getTotalLength());
+    return { start: [start.x, start.y], end: [end.x, end.y], right: Number(box.getAttribute('x')) + Number(box.getAttribute('width')) };
+  });
+  expect(intercepts.start[0]).toBeCloseTo(55);
+  expect(intercepts.start[1]).toBeGreaterThan(36);
+  expect(intercepts.start[1]).toBeLessThan(266);
+  expect(intercepts.end[0]).toBeGreaterThan(55);
+  expect(intercepts.end[0]).toBeLessThan(intercepts.right);
+  expect(intercepts.end[1]).toBeCloseTo(266);
+  await expect(page.locator('.live-point')).toHaveCount(1);
+  await expect(page.locator('.sample-dot')).toHaveCount(2);
+  await page.reload();
+  await expect(slider).toHaveValue('20');
+  await expect(page.locator('.sample-dot')).toHaveCount(0);
+  expect(errors).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('电源测量：外接分流使 E、r 同时偏小，修正和切换接法', async ({ page }) => {
+  await page.goto(url);
+  await page.getByRole('button', { name: '放大分流', exact: true }).click();
+  await collect(page);
+  await expect(page.locator('.fit-results')).toContainText('1.364 V');
+  await expect(page.locator('.fit-results')).toContainText('0.909 Ω');
+  await expect(page.locator('.displacement')).toContainText('向右');
+  await page.getByRole('checkbox', { name: '用已知电表内阻修正' }).check();
+  await expect(page.locator('.corrected-result')).toContainText('1.500 V');
+  await expect(page.locator('.corrected-result')).toContainText('1.000 Ω');
+  await expect(page.locator('.corrected-dot')).toHaveCount(6);
+  await page.getByText('查看 6 组测量数据', { exact: true }).click();
+  await expect(page.locator('tbody tr')).toHaveCount(6);
+  await expect(page.locator('table')).toContainText('I修正 / A');
+  await page.getByRole('button', { name: '删除第 1 组数据', exact: true }).click();
+  await expect(page.locator('.sample-dot')).toHaveCount(5);
+  await page.getByRole('button', { name: /电流表内接/ }).click();
+  await expect(page.getByRole('button', { name: '记录当前读数' })).toBeEnabled();
+  await expect(page.locator('.sample-dot')).toHaveCount(0);
+  await expect(page.locator('.live-point')).toHaveCount(1);
+  await expect(page.locator('.displacement')).toContainText('向上');
+  await page.getByRole('button', { name: '记录当前读数' }).click();
+  await expect(page.locator('.sample-dot')).toHaveCount(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('电源测量：内接分压使 r 偏大，修正、改参数清空与恢复默认', async ({ page }) => {
+  await page.goto(url);
+  await page.getByRole('button', { name: '放大分压', exact: true }).click();
+  await expect(page.locator('.emf-circuit')).toHaveAttribute('aria-label', /相对电源内接.*电流表测总电流/);
+  await collect(page);
+  await expect(page.locator('.fit-results')).toContainText('1.500 V');
+  await expect(page.locator('.fit-results')).toContainText('2.000 Ω');
+  await expect(page.locator('.displacement')).toContainText('向上');
+  await page.getByRole('checkbox', { name: '用已知电表内阻修正' }).check();
+  await expect(page.locator('.corrected-result')).toContainText('1.000 Ω');
+  await setResistance(page, 2);
+  await expect(page.locator('.sample-dot')).toHaveCount(0);
+  await expect(page.getByRole('slider', { name: '滑动变阻器接入电阻', exact: true })).toHaveValue('2');
+  await expect(page.getByRole('button', { name: '记录当前读数' })).toBeEnabled();
+  await page.getByRole('button', { name: '恢复默认', exact: true }).click();
+  await expect(page.getByRole('button', { name: '理想电表', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.emf-plot')).toHaveAttribute('aria-label', /横轴电流 I，纵轴电压 U.*显示两轴截距/);
+  await expect(page.getByRole('checkbox', { name: '用已知电表内阻修正' })).not.toBeChecked();
+});
+
+test('电源测量：水果电池匹配负载、mA 和 μA 坐标、拟合修正与低内阻恢复', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.goto(url);
+  await page.getByRole('button', { name: '水果电池 · 高内阻', exact: true }).click();
+  const slider = page.getByRole('slider', { name: '滑动变阻器接入电阻', exact: true });
+  await expect(slider).toHaveAttribute('min', '500');
+  await expect(slider).toHaveAttribute('max', '5000');
+  await expect(slider).toHaveValue('5000');
+  await expect(page.locator('.emf-plot')).toContainText('I / mA');
+  await expect(page.locator('.emf-circuit .current-label')).toContainText('mA');
+  await expect(page.locator('.axis-explanation')).toContainText('1000');
+  await collect(page);
+  await expect(page.locator('.fit-results')).toContainText('0.857 V');
+  await expect(page.locator('.fit-results')).toContainText('428.571 Ω');
+  await expect(page.locator('.state-note')).toContainText('5000、3000、2000、1250、750、500');
+  await page.getByRole('checkbox', { name: '用已知电表内阻修正' }).check();
+  await expect(page.locator('.corrected-result')).toContainText('1.000 V');
+  await expect(page.locator('.corrected-result')).toContainText('500.000 Ω');
+  await page.getByText('查看 6 组测量数据', { exact: true }).click();
+  await expect(page.locator('table')).toContainText('I / mA');
+  await expect(page.locator('.fit-equation .katex-error')).toHaveCount(0);
+  await expect(page.locator('.fit-equation .katex')).toBeVisible();
+  await page.getByRole('button', { name: /电流表内接/ }).click();
+  await collect(page);
+  await expect(page.locator('.fit-results')).toContainText('1.000 V');
+  await expect(page.locator('.fit-results')).toContainText('500.200 Ω');
+  await setResistance(page, 5000);
+  await expect(slider).toHaveAttribute('min', '5000');
+  await expect(slider).toHaveAttribute('max', '50000');
+  await expect(page.locator('.emf-plot')).toContainText('I / μA');
+  await expect(page.locator('.emf-circuit .current-label')).toContainText('μA');
+  await collect(page);
+  await expect(page.locator('.fit-results')).toContainText('5000.200 Ω');
+  await expect(page.locator('.corrected-result')).toContainText('5000.000 Ω');
+  await expect(page.locator('.fit-equation .katex-error')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: '恢复默认', exact: true }).click();
+  await expect(slider).toHaveAttribute('min', '2');
+  await expect(slider).toHaveAttribute('max', '20');
+  await expect(slider).toHaveValue('20');
+  await expect(page.locator('.emf-plot')).toContainText('I / A');
+  expect(errors).toEqual([]);
+});

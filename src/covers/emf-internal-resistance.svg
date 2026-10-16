@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" fill="none">
+  <rect width="600" height="280" fill="#eef4ed"/>
+  <g stroke="#6c8b7a" stroke-width="2.5"><path d="M54 88H132M145 88H242V205H54V88M132 72V104M145 79V97"/><path d="M54 144H122M160 144H242" stroke="#c2994b"/><path d="M54 187H85M123 187H168"/></g>
+  <rect x="168" y="178" width="44" height="18" fill="#c4ddcc" stroke="#6c8b7a" stroke-width="2"/><path d="M202 166V180M197 172L202 180L207 172" stroke="#367c61" stroke-width="2"/>
+  <circle cx="104" cy="187" r="18" fill="#f9fcf7" stroke="#367c61" stroke-width="2"/><circle cx="141" cy="144" r="19" fill="#fff8e9" stroke="#c2994b" stroke-width="2"/>
+  <g font-family="Georgia,serif" font-size="22" text-anchor="middle"><text x="104" y="194" fill="#367c61">A</text><text x="141" y="152" fill="#ac7e26">V</text><text x="138" y="53" fill="#367c61" font-style="italic">E, r</text></g>
+  <path d="M332 48V222H552" stroke="#8a9e8e" stroke-width="2"/><path d="M332 78L546 202" stroke="#86968b" stroke-width="2" stroke-dasharray="6 5"/><path d="M332 91L546 204" stroke="#bd8a31" stroke-width="3"/>
+  <g fill="#bd8a31" stroke="#eef4ed" stroke-width="2"><circle cx="365" cy="108" r="5"/><circle cx="398" cy="126" r="5"/><circle cx="431" cy="143" r="5"/><circle cx="464" cy="161" r="5"/><circle cx="497" cy="178" r="5"/></g>
+  <g fill="#6a8371" font-family="Georgia,serif" font-size="19" font-style="italic"><text x="318" y="41">U</text><text x="558" y="237">I</text><text x="403" y="64">U = E − rI</text></g>
+</svg>
