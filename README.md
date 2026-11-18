@@ -1,11 +1,12 @@
 # 物理实验室
 
-面向高中物理课堂的 Vue 静态网站，共十八个站内实验，共用网站导航、演示布局和控件。按教学内容整理如下：
+面向高中物理课堂的 Vue 静态网站，共二十个站内实验，共用网站导航与全屏操作。按教学内容整理如下：
 
 | 分类 | 实验 |
 | --- | --- |
 | 测量 | 游标卡尺、螺旋测微器 |
 | 力学 | 深蹲跳物理模型、竖直圆周运动与分离 |
+| 振动与波 | 机械振动和机械波、机械波干涉 |
 | 电路 | 测量电源电动势和内阻、电阻 24 点、滑动变阻器：分压与限流、电表改装 |
 | 静电场 | 示波管原理、李萨如图形、静电场可视化实验室 |
 | 静磁场 | 磁场可视化实验室 |
@@ -15,7 +16,7 @@
 
 交给其他部门时，从 [编译与交付说明](docs/BUILD.md) 开始；部署方参考 [部署与回退](docs/DEPLOYMENT.md)，维护者参考 [版本与 GitHub 发布](docs/RELEASING.md)。文档目录见 [docs/README.md](docs/README.md)。
 
-当前版本为 **0.9.0**，统一读取 `package.json`。首页页脚和 `/version.json` 可查看构建版本；发布包见 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases)。
+当前版本为 **0.10.0**，统一读取 `package.json`。首页页脚和 `/version.json` 可查看构建版本；发布包见 [GitHub Releases](https://github.com/Catofes/physics-experiments/releases)。
 
 ## 项目组织
 
@@ -62,6 +63,11 @@ npm run preview
 ```
 
 `npm test` 检查目录模块登记、模型轨迹及关键物理关系；`npm run build` 先运行测试，再构建到 `dist/`。预览默认 `http://localhost:4173`。
+
+## 振动与波
+
+- `/experiments/mechanical-waves` 收录附件《机械振动和机械波.html》的七项演示，包括弹簧振子、单摆、简谐振动、阻尼振动、横波、纵波和波的叠加。可调整各演示的参数，播放或逐帧观察。原课件署名见实验页底部。
+- `/experiments/wave-interference` 收录附件《机械波干涉.html》的一维叠加和二维水波演示。可切换两波源情境，拖动观察点或沿干涉双曲线选点，同时查看合振动时间图像。模型采用均匀介质中的线性小振幅波，忽略衰减与边界反射。
 
 ## 长度测量
 

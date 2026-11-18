@@ -41,7 +41,7 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <div class="workbench">
+  <div class="workbench" :class="{ 'workbench-flow': $slots.content }">
     <header class="lab-header">
       <RouterLink :to="{ name: 'catalog', query: route.query }" class="lab-back"
         >← 实验目录</RouterLink
@@ -54,7 +54,11 @@ onUnmounted(() => {
         {{ isFullscreen ? "退出全屏" : "全屏演示" }}
       </button>
     </header>
-    <main class="lab-layout" :class="{ 'without-controls': !showControls }">
+    <main
+      v-if="!$slots.content"
+      class="lab-layout"
+      :class="{ 'without-controls': !showControls }"
+    >
       <section class="lab-demonstration" aria-label="实验演示">
         <div class="lab-stage"><slot name="stage" /></div>
         <div v-if="showPlayback" class="lab-playback">
@@ -96,10 +100,12 @@ onUnmounted(() => {
         </details>
       </aside>
     </main>
+    <slot name="content" />
     <p v-if="notice" class="lab-notice" role="status">{{ notice }}</p>
   </div>
 </template>
 
 <style scoped>
 .lab-layout.without-controls { grid-template-columns: minmax(0, 1fr); }
+.workbench-flow { height: auto; min-height: 100dvh; }
 </style>

@@ -1,0 +1,851 @@
+.mechanical-waves {
+  color-scheme: light;
+  --paper: #f3f6f5;
+  --panel: #fff;
+  --ink: #162c2c;
+  --muted: #536665;
+  --line: #dbe4e0;
+  --teal: #0b6b5c;
+  --teal-hover: #09594d;
+  --teal-light: #e2f3ec;
+  --radius: 18px;
+  font-family:
+    "Instrument Sans", "Segoe UI", "PingFang SC", "Microsoft YaHei",
+    "Noto Sans CJK SC", system-ui, sans-serif;
+  font-synthesis: none;
+  flex: 1;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.55;
+}
+
+.mechanical-waves button,
+.mechanical-waves input {
+  font: inherit;
+}
+.mechanical-waves button {
+  color: inherit;
+}
+.mechanical-waves button:not(:disabled) {
+  cursor: pointer;
+}
+.mechanical-waves button:focus-visible,
+.mechanical-waves input:focus-visible,
+.mechanical-waves summary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+}
+
+.mechanical-waves button,
+.mechanical-waves summary {
+  -webkit-tap-highlight-color: transparent;
+}
+.mechanical-waves button[hidden],
+.mechanical-waves [hidden] {
+  display: none !important;
+}
+.mechanical-waves .icons {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.mechanical-waves .icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+}
+
+.mechanical-waves .wrap {
+  width: min(1520px, calc(100% - 80px));
+  margin-inline: auto;
+}
+.mechanical-waves .menu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+.mechanical-waves .menu .menu-head h2 {
+  margin: 0 0 0 4px;
+}
+.mechanical-waves .menu-actions {
+  display: flex;
+  gap: 3px;
+}
+.mechanical-waves .menu-actions button {
+  min-width: 28px;
+  min-height: 30px;
+  padding: 0 4px;
+}
+.mechanical-waves .menu-actions .icon {
+  width: 15px;
+  height: 15px;
+}
+.mechanical-waves .menu.is-collapsed .menu-head {
+  justify-content: center;
+  margin: 0;
+}
+.mechanical-waves .menu.is-collapsed h2 {
+  display: none;
+}
+.mechanical-waves .menu.is-collapsed {
+  padding: 7px;
+}
+.mechanical-waves .splitter {
+  position: absolute;
+  inset: 12px auto 12px calc(100% + 3px);
+  width: 10px;
+  display: grid;
+  place-items: center;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 1;
+}
+.mechanical-waves .splitter::before {
+  content: "";
+  width: 3px;
+  height: 36px;
+  border-radius: 4px;
+  background: #9db5ad;
+}
+.mechanical-waves .splitter:hover::before,
+.mechanical-waves .splitter:focus-visible::before,
+.mechanical-waves .splitter.is-dragging::before {
+  background: var(--teal);
+}
+.mechanical-waves.is-resizing,
+.mechanical-waves.is-resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+@media (min-width: 711px) {
+  .mechanical-waves .shell .lesson.has-split {
+    grid-template-columns: minmax(0, 1fr) clamp(
+        182px,
+        var(--parameter-width),
+        calc(100% - 332px)
+      );
+  }
+}
+@media (min-width: 1011px) {
+  .mechanical-waves .shell.menu-hidden {
+    grid-template-columns: 46px minmax(0, 1fr);
+  }
+}
+@media (max-width: 710px) {
+  .mechanical-waves .splitter {
+    display: none;
+  }
+}
+
+.mechanical-waves .button-outline,
+.mechanical-waves .toolbar button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 9px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.mechanical-waves .button-outline:hover,
+.mechanical-waves .toolbar button:hover:not(:disabled) {
+  background: #f4f8f6;
+}
+.mechanical-waves .button-outline .icon,
+.mechanical-waves .toolbar .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.mechanical-waves .shell {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.mechanical-waves .lesson {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  align-items: start;
+  gap: 16px;
+}
+
+.mechanical-waves .card,
+.mechanical-waves .menu {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 3px 10px rgb(25 53 48 / 3%);
+}
+
+.mechanical-waves .menu {
+  padding: 16px 11px 12px;
+}
+.mechanical-waves .menu h2 {
+  margin: 2px 8px 17px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.mechanical-waves .nav-group + .nav-group {
+  border-top: 1px solid #edf0ed;
+  margin-top: 11px;
+  padding-top: 11px;
+}
+
+.mechanical-waves .nav-label {
+  margin: 0 8px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.055em;
+}
+
+.mechanical-waves .nav-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  gap: 9px;
+  padding: 7px 8px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mechanical-waves .nav-button .icon {
+  width: 19px;
+  height: 19px;
+  color: #53726b;
+}
+.mechanical-waves .nav-button:hover {
+  background: #f2f6f4;
+}
+.mechanical-waves .nav-button[aria-current="true"] {
+  background: var(--teal-light);
+  color: #095c4d;
+  font-weight: 700;
+}
+
+.mechanical-waves .nav-button[aria-current="true"] .icon {
+  color: #087663;
+}
+
+.mechanical-waves .nav-button[aria-current="true"]::after {
+  content: "";
+  margin-left: auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0d8470;
+}
+
+.mechanical-waves .stage-card {
+  position: relative;
+  padding: 17px;
+}
+.mechanical-waves .stage-header {
+  padding: 1px 1px 14px;
+}
+.mechanical-waves .stage-header h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.1vw, 30px);
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+
+.mechanical-waves .stage-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.mechanical-waves .stage {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #14313a;
+  border-radius: 13px;
+  background-color: #10242f;
+  background-image:
+    linear-gradient(0deg, rgba(147, 188, 194, 0.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 188, 194, 0.065) 1px, transparent 1px),
+    radial-gradient(ellipse at 50% 53%, #173844 4%, #122e3a 53%, #10242f 100%);
+  background-size:
+    26px 26px,
+    26px 26px,
+    100% 100%;
+}
+
+.mechanical-waves #simulation {
+  display: block;
+  width: 100%;
+  height: clamp(323px, 29vw, 430px);
+}
+
+.mechanical-waves .stage-meta {
+  position: absolute;
+  inset: 15px 14px auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+  color: #d1e1e4;
+  font-size: 12px;
+}
+
+.mechanical-waves .stage-state,
+.mechanical-waves .stage-time {
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid #43606a;
+  background: #102630;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.mechanical-waves .stage-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mechanical-waves .stage-state::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: #99acb2;
+  border-radius: 50%;
+}
+
+.mechanical-waves .stage-state.is-playing::before {
+  background: #6ce2c5;
+}
+.mechanical-waves .stage-time {
+  font-variant-numeric: tabular-nums;
+}
+.mechanical-waves .stage-time var {
+  padding-right: 2px;
+}
+
+.mechanical-waves .toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 12px;
+}
+
+.mechanical-waves .toolbar button:disabled {
+  opacity: 0.47;
+}
+.mechanical-waves .toolbar .primary {
+  min-width: 88px;
+  margin-right: 3px;
+  border-color: var(--teal);
+  color: #fff;
+  background: var(--teal);
+}
+
+.mechanical-waves .toolbar .primary:hover:not(:disabled) {
+  background: var(--teal-hover);
+}
+.mechanical-waves .toolbar .frame-button {
+  min-width: 43px;
+}
+.mechanical-waves .frame-label {
+  display: none;
+}
+.mechanical-waves .toolbar .frame-next {
+  margin-left: -1px;
+}
+
+.mechanical-waves .keys {
+  position: relative;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mechanical-waves .keys summary {
+  padding: 8px 1px;
+  cursor: pointer;
+  white-space: nowrap;
+  list-style: none;
+}
+
+.mechanical-waves .keys summary::-webkit-details-marker {
+  display: none;
+}
+.mechanical-waves .keys summary:hover {
+  color: var(--teal);
+}
+.mechanical-waves .keys summary .icon {
+  width: 16px;
+  height: 16px;
+}
+.mechanical-waves .key-list {
+  z-index: 2;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 5px);
+  min-width: 190px;
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: 0 6px 26px rgb(18 49 41 / 16%);
+}
+
+.mechanical-waves .key-list div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-block: 4px;
+}
+
+.mechanical-waves .key-list dd {
+  margin: 0;
+  white-space: nowrap;
+}
+.mechanical-waves kbd {
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: #314b48;
+  background: #edf3f0;
+  font:
+    11px "IBM Plex Mono",
+    Consolas,
+    monospace;
+}
+
+.mechanical-waves .settings {
+  padding: 15px;
+}
+.mechanical-waves .settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mechanical-waves .settings-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.mechanical-waves .text-button {
+  min-height: 32px;
+  padding: 2px 0 2px 4px;
+  color: var(--teal);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mechanical-waves .text-button:hover {
+  text-decoration: underline;
+}
+
+.mechanical-waves fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.mechanical-waves .settings legend {
+  width: 100%;
+  margin-bottom: 7px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mechanical-waves .control + .control {
+  margin-top: 13px;
+}
+.mechanical-waves .control-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.mechanical-waves .control-head var {
+  margin-left: 3px;
+  color: #536c66;
+}
+.mechanical-waves .control-head output {
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: #0c6254;
+  background: #eaf5f0;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mechanical-waves .control input[type="range"] {
+  display: block;
+  width: 100%;
+  height: 19px;
+  margin: 0;
+  border-radius: 9px;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+.mechanical-waves .metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px 10px;
+  border: 1px solid #ddebe5;
+  border-radius: 9px;
+  background: #f1f7f4;
+  font-size: 12px;
+}
+
+.mechanical-waves .metric strong {
+  color: #12534a;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mechanical-waves .checks {
+  margin-top: 15px;
+  padding: 4px 0 0;
+}
+
+.mechanical-waves .checks legend {
+  margin-bottom: 2px;
+}
+.mechanical-waves .check-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 5px;
+}
+
+.mechanical-waves .check-list label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mechanical-waves .check-list input {
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--teal);
+}
+.mechanical-waves .check-list .swatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.mechanical-waves .segments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-bottom: 13px;
+  padding: 3px;
+  border: 1px solid #e4ebe6;
+  border-radius: 10px;
+  background: #f3f7f4;
+}
+
+.mechanical-waves .segments label {
+  position: relative;
+  cursor: pointer;
+}
+.mechanical-waves .segments input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.mechanical-waves .segments span {
+  display: grid;
+  min-height: 33px;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.mechanical-waves .segments label:hover span {
+  color: var(--teal);
+}
+.mechanical-waves .segments input:checked + span {
+  color: #095f51;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(34 71 58 / 11%);
+  font-weight: 680;
+}
+
+.mechanical-waves .segments input:focus-visible + span {
+  outline: 2px solid var(--teal);
+}
+
+.mechanical-waves .observation {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 17px;
+}
+
+.mechanical-waves .observation h3 {
+  margin: 0 0 3px;
+  font-size: 14px;
+}
+.mechanical-waves .observation p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.mechanical-waves .formula {
+  max-width: 100%;
+  justify-self: start;
+  padding: 8px 12px;
+  border: 1px solid #deebe4;
+  border-radius: 8px;
+  color: #104e43;
+  background: #edf6f1;
+  font:
+    17px/1.45 "STIX Two Text",
+    "Cambria Math",
+    "Cambria",
+    "Linux Libertine",
+    serif;
+  overflow-wrap: anywhere;
+}
+
+.mechanical-waves .formula var {
+  font-style: italic;
+}
+
+.mechanical-waves .footer {
+  margin: 21px auto 23px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mechanical-waves .sr-only {
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  position: absolute;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.mechanical-waves noscript p {
+  margin: 0 0 15px;
+}
+
+@media (min-width: 1231px) {
+  .mechanical-waves .frame-label {
+    display: inline;
+  }
+}
+
+@media (max-width: 1230px) {
+  .mechanical-waves .wrap {
+    width: calc(100% - 52px);
+  }
+  .mechanical-waves .shell {
+    grid-template-columns: 176px minmax(0, 1fr);
+    gap: 15px;
+  }
+  .mechanical-waves .lesson {
+    grid-template-columns: minmax(0, 1fr) 236px;
+    gap: 12px;
+  }
+  .mechanical-waves .settings {
+    padding: 13px;
+  }
+  .mechanical-waves .stage-card {
+    padding: 14px;
+  }
+  .mechanical-waves .splitter {
+    left: calc(100% + 1px);
+  }
+  .mechanical-waves .observation {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 1010px) {
+  .mechanical-waves .wrap {
+    width: calc(100% - 42px);
+  }
+  .mechanical-waves .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mechanical-waves .menu {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 8px 15px;
+    padding: 10px;
+  }
+  .mechanical-waves .menu h2 {
+    position: absolute;
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+  .mechanical-waves .menu .menu-head {
+    flex: 0 0 100%;
+    justify-content: flex-end;
+    margin-bottom: 0;
+  }
+  .mechanical-waves .menu.is-collapsed .menu-head {
+    justify-content: flex-end;
+  }
+  .mechanical-waves .nav-group + .nav-group {
+    border-top: 0;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .mechanical-waves .nav-label {
+    margin: 0 3px 3px;
+    font-size: 11px;
+  }
+  .mechanical-waves .nav-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .mechanical-waves .nav-button {
+    width: auto;
+    min-height: 36px;
+    gap: 5px;
+    padding: 5px 7px;
+    font-size: 12px;
+  }
+  .mechanical-waves .nav-button .icon {
+    width: 16px;
+    height: 16px;
+  }
+  .mechanical-waves .nav-button[aria-current="true"]::after {
+    display: none;
+  }
+}
+
+@media (max-width: 710px) {
+  .mechanical-waves .wrap {
+    width: calc(100% - 28px);
+  }
+  .mechanical-waves .lesson {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mechanical-waves .settings {
+    padding: 14px;
+  }
+  .mechanical-waves #simulation {
+    height: 320px;
+  }
+  .mechanical-waves .observation {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 9px;
+  }
+  .mechanical-waves .formula {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 500px) {
+  .mechanical-waves .keys summary {
+    display: grid;
+    width: 31px;
+    min-height: 40px;
+    place-items: center;
+    padding: 0;
+  }
+  .mechanical-waves .keys-label {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .mechanical-waves .stage-card {
+    padding: 11px;
+  }
+  .mechanical-waves .stage-meta {
+    inset: 12px 10px auto;
+  }
+  .mechanical-waves #simulation {
+    height: 303px;
+  }
+  .mechanical-waves .toolbar {
+    gap: 4px;
+  }
+  .mechanical-waves .toolbar button {
+    min-height: 39px;
+    padding-inline: 9px;
+  }
+  .mechanical-waves .toolbar .frame-button {
+    min-width: 35px;
+    padding-inline: 0;
+  }
+  .mechanical-waves .toolbar .primary {
+    min-width: 71px;
+    margin-right: 0;
+  }
+  .mechanical-waves .keys {
+    font-size: 11px;
+  }
+}
+
+.mechanical-waves .shell {
+  padding-top: 20px;
+}

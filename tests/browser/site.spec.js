@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import experiments from "../../src/experiments.json" with { type: "json" };
 
 test("目录、历史导航、暂停及重置", async ({ page }) => {
   await page.goto("/");
@@ -42,7 +43,7 @@ test("目录、历史导航、暂停及重置", async ({ page }) => {
   await expect(page.getByRole("searchbox")).toHaveValue("动量");
   await page.getByRole("button", { name: "电路", exact: true }).click();
   await page.getByRole("button", { name: "查看全部实验", exact: true }).click();
-  await expect(page.locator(".experiment-card")).toHaveCount(18);
+  await expect(page.locator(".experiment-card")).toHaveCount(experiments.length);
 });
 
 test("三维实验交互、退出清理及本地依赖", { tag: '@3d' }, async ({ page, baseURL }) => {

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" fill="none">
+  <defs>
+    <clipPath id="tank"><rect x="76" y="36" width="448" height="208" rx="16"/></clipPath>
+  </defs>
+  <path fill="#e7eef5" d="M0 0h600v280H0z"/>
+  <rect x="76" y="36" width="448" height="208" rx="16" fill="#f3f7fb" stroke="#bdcfdf"/>
+  <g clip-path="url(#tank)" stroke-width="2.4">
+    <g stroke="#ca695c" opacity=".66">
+      <circle cx="218" cy="140" r="27"/><circle cx="218" cy="140" r="56"/>
+      <circle cx="218" cy="140" r="86"/><circle cx="218" cy="140" r="115"/>
+      <circle cx="218" cy="140" r="145"/><circle cx="218" cy="140" r="174"/>
+    </g>
+    <g stroke="#258391" opacity=".66">
+      <circle cx="382" cy="140" r="27"/><circle cx="382" cy="140" r="56"/>
+      <circle cx="382" cy="140" r="86"/><circle cx="382" cy="140" r="115"/>
+      <circle cx="382" cy="140" r="145"/><circle cx="382" cy="140" r="174"/>
+    </g>
+    <path d="M300 42v196" stroke="#6750a4" stroke-dasharray="5 6"/>
+    <circle cx="218" cy="140" r="7" fill="#ca695c" stroke="white"/>
+    <circle cx="382" cy="140" r="7" fill="#258391" stroke="white"/>
+    <circle cx="300" cy="140" r="6" fill="#6750a4" stroke="white"/>
+  </g>
+</svg>
